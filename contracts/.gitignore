@@ -1,0 +1,28 @@
+# Dependencies (restore via: forge install)
+lib/
+
+# Foundry / build artifacts
+out/
+cache/
+artifacts/
+build/
+out/**
+
+# Broadcast / local deployments / ephemeral
+broadcast/
+broadcasts/
+
+# Deployments produced by scripts (ignore all unless you intentionally keep some)
+deployments/
+
+# Local env / secrets
+.env
+.env.*
+secrets.json
+
+# IDE / OS
+.DS_Store
+*.swp
+
+# Optional: ignore test output / coverage
+coverage/
