@@ -11,7 +11,7 @@ import {IVeritasOracle} from "./interfaces/IVeritasOracle.sol";
  * @notice Single signature-verification authority for DRS attestations ("Opsi A").
  *
  * @dev "Content token pools are illiquid not because nobody wants them, but because LPs cannot price
- *      their risk. The dominant downside driver — dilution by copies and AI replicas — is invisible
+ *      their risk. The dominant downside driver - dilution by copies and AI replicas - is invisible
  *      on-chain. Veritas is the missing risk infrastructure." This contract is the trust anchor that
  *      lets an off-chain risk score be relied upon on-chain without a single point of failure.
  *

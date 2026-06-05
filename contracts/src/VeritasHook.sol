@@ -25,7 +25,7 @@ import {IVeritasRegistry} from "./interfaces/IVeritasRegistry.sol";
  *         (1) a DRS-calibrated dynamic LP fee and (2) a self-funding LP Insurance Reserve.
  *
  * @dev "Content token pools are illiquid not because nobody wants them, but because LPs cannot price
- *      their risk. The dominant downside driver — dilution by copies and AI replicas — is invisible
+ *      their risk. The dominant downside driver - dilution by copies and AI replicas - is invisible
  *      on-chain. Veritas is the missing risk infrastructure: a Dilution Risk Score that makes content
  *      asset pools investable for the first time. Empirically grounded in peer-reviewed research showing
  *      rarer NFTs yield lower downside risk (Mekacher et al., Nature 2022)."
@@ -33,13 +33,13 @@ import {IVeritasRegistry} from "./interfaces/IVeritasRegistry.sol";
  *      Why a *fee* is a principled IL hedge: for a 50/50 constant-product pool, expected impermanent
  *      loss grows with the variance of the relative price (E[IL] ~= -sigma^2/8). Treating DRS as a
  *      forward volatility proxy makes `fee = base + (max-base)*DRS` a compensation rate proportional to
- *      expected IL — not an arbitrary number.
+ *      expected IL - not an arbitrary number.
  *
  *      Two complementary, DRS-driven layers:
  *        1. Dynamic LP fee (beforeSwap, override flag): higher DRS => higher fee income for LPs.
  *        2. LP Insurance Reserve (afterSwap hook fee, taken as ERC-6909 claims): a slice of every swap
  *           on a risky asset accrues into a per-pool buffer that is later donated back to that pool's
- *           in-range LPs on a verified dilution event — real protection, not just pricing.
+ *           in-range LPs on a verified dilution event - real protection, not just pricing.
  *
  *      Pool-creation auth: because v4's `beforeInitialize` has no `hookData`, configuration is a direct,
  *      authenticated `registerPool` call by the content owner (`msg.sender == owner`). This is the clean
@@ -266,7 +266,7 @@ contract VeritasHook is BaseHook, IUnlockCallback {
     /**
      * @notice Pay a pool's accrued insurance reserve back to its in-range LPs via PoolManager.donate.
      * @dev Permissionless, but only callable once the pool's DRS has materially risen above its value at
-     *      registration (a verified dilution event) — exactly when LPs need the buffer. donate distributes
+     *      registration (a verified dilution event) - exactly when LPs need the buffer. donate distributes
      *      pro-rata to current liquidity with no manual share accounting.
      */
     function disburseReserveToLPs(PoolKey calldata key) external {

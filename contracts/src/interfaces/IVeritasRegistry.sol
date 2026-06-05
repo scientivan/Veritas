@@ -19,7 +19,7 @@ import {IVeritasOracle} from "./IVeritasOracle.sol";
  *
  *      DRS is never stored; it is derived live: DRS = noisyOR(max(saturateD(dilutionCount), offchainD), A).
  *
- *      On-chain near-duplicate search is an O(n) dual-hash (pHash AND blockhash) scan — fine for a
+ *      On-chain near-duplicate search is an O(n) dual-hash (pHash AND blockhash) scan - fine for a
  *      hackathon; bucket by pHash prefix to scale.
  */
 interface IVeritasRegistry {
