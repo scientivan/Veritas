@@ -1,0 +1,50 @@
+[
+  {
+    "sampleId": "seed:photo:10",
+    "label": "ref: forest canopy"
+  },
+  {
+    "sampleId": "seed:photo:1003",
+    "label": "ref: mountain lake"
+  },
+  {
+    "sampleId": "seed:photo:1015",
+    "label": "ref: river valley"
+  },
+  {
+    "sampleId": "seed:photo:1025",
+    "label": "ref: pug portrait"
+  },
+  {
+    "sampleId": "seed:photo:1043",
+    "label": "ref: city dusk"
+  },
+  {
+    "sampleId": "seed:photo:1062",
+    "label": "ref: golden retriever"
+  },
+  {
+    "sampleId": "seed:photo:200",
+    "label": "ref: misty hills"
+  },
+  {
+    "sampleId": "seed:photo:433",
+    "label": "ref: cow field"
+  },
+  {
+    "sampleId": "seed:cluster:237:0",
+    "label": "viral: black puppy"
+  },
+  {
+    "sampleId": "seed:cluster:237:1",
+    "label": "viral: black puppy"
+  },
+  {
+    "sampleId": "seed:cluster:237:2",
+    "label": "viral: black puppy"
+  },
+  {
+    "sampleId": "seed:cluster:237:3",
+    "label": "viral: black puppy"
+  }
+]

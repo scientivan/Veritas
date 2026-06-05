@@ -1,0 +1,34 @@
+{
+  "name": "veritas-oracle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Veritas Protocol off-chain DRS oracle: fingerprints content, computes Dilution Risk Score (D + A), and returns EIP-712 operator signatures the registry verifies on-chain.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "seed": "tsx scripts/seed.ts",
+    "smoke": "tsx scripts/smoke.ts",
+    "keeper": "tsx scripts/keeper.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@huggingface/transformers": "^3.3.3",
+    "better-sqlite3": "^11.8.1",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "sqlite-vec": "^0.1.7-alpha.2",
+    "viem": "^2.22.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^22.10.7",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

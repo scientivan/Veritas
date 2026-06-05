@@ -1,0 +1,11 @@
+node_modules/
+.env
+*.log
+
+# Local model cache (transformers.js downloads here) and the vector corpus DB.
+.models/
+data/*.db
+data/*.db-*
+
+# macOS
+.DS_Store
