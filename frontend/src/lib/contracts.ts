@@ -6,6 +6,8 @@ export const ORACLE_ADDRESS: Address = "0x45b327808f4D719C574D4508DD46a8E7b4124b
 export const HOOK_ADDRESS: Address = "0x0AaAef1B312243EfaAD238fb53403dC5761d60C4";
 export const REGISTRY_CALLBACK_ADDRESS: Address = "0xa516891eE1a4b0c4a149D1241e2EE00702B7332a";
 export const POOL_MANAGER_ADDRESS: Address = "0x00B036B58a818B1BC34d502D3fE730Db729e62AC";
+/** Persistent PoolModifyLiquidityTest router (real add/remove liquidity from the UI). */
+export const LIQUIDITY_ROUTER_ADDRESS: Address = "0x7FaeB8F738DA1248D63728D90A16913f32651bbe";
 
 export const CHAIN_ID = 1301;
 export const EXPLORER = "https://sepolia.uniscan.xyz";

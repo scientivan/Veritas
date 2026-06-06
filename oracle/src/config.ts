@@ -61,6 +61,15 @@ export const config = {
    * at the cost of true-positive sensitivity.
    */
   imageAiTemperature: num("IMAGE_AI_TEMPERATURE", 1.5),
+  /**
+   * Hard cap on the image-A contribution. The open SMOGY detector confidently
+   * mislabels ~30-50% of real photos as AI, so a single unreliable detector must
+   * NOT be able to gate a pool on its own. Capping A here keeps a genuine-AI
+   * signal as a soft fee surcharge while reserving gating for the trustless,
+   * on-chain D (duplication) channel. A unique photo wrongly flagged tops out at
+   * this value instead of ~1.0. Set to 1 to disable the cap.
+   */
+  imageAiMaxContribution: num("IMAGE_AI_MAX_CONTRIBUTION", 0.5),
 
   /** Pinata JWT for real IPFS pinning. If unset, the service derives a local CIDv1. */
   pinataJwt: process.env.PINATA_JWT?.trim() || "",

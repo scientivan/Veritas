@@ -3,8 +3,10 @@
 import {useMemo, useState} from "react";
 import Link from "next/link";
 import {Search, Radio, Loader2} from "lucide-react";
+import {ExplorerLink} from "./ExplorerLink";
 import {dynamicFeeBps} from "@/lib/drs";
 import {hasLivePool, getLivePoolList} from "@/lib/livePools";
+import {ASSUMED_ANNUAL_TURNOVER, poolImage} from "@/lib/poolMeta";
 import {useAttestations} from "@/hooks/useAttestations";
 import {useLivePoolTvl} from "@/hooks/useLivePoolTvl";
 import {RiskPill} from "./RiskPill";
@@ -24,12 +26,17 @@ export function PoolTable() {
   const {pools, isLive, isLoading} = useAttestations();
   const tvlByAttestation = useLivePoolTvl(getLivePoolList());
 
-  // Merge real (assumed-price) TVL into the pooled attestations.
+  // Merge real (assumed-price) TVL into the pooled attestations, plus a labelled
+  // APY estimate derived from the live DRS-calibrated fee (testnet has no volume).
   const withTvl = useMemo<Pool[]>(
     () =>
       pools.map((p) => {
         const tvl = tvlByAttestation.get(p.id.toLowerCase());
-        return tvl !== undefined && tvl !== null ? {...p, tvlUsd: tvl} : p;
+        if (tvl === undefined || tvl === null) return p;
+        const apyPct = p.gated
+          ? null
+          : (dynamicFeeBps(p.drs, p.baseFeeBps, p.maxFeeBps) / 10000) * ASSUMED_ANNUAL_TURNOVER;
+        return {...p, tvlUsd: tvl, apyPct};
       }),
     [pools, tvlByAttestation]
   );
@@ -84,8 +91,10 @@ export function PoolTable() {
               key={s.key}
               onClick={() => setSort(s.key)}
               className={cn(
-                "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-                sort === s.key ? "bg-surface-2 text-ink" : "text-muted hover:text-ink"
+                "relative rounded-md px-2.5 py-1 text-xs font-semibold transition-all duration-200",
+                sort === s.key
+                  ? "bg-primary/15 text-primary-ink shadow-[0_0_0_1px_var(--color-primary-ink)/20]"
+                  : "text-muted hover:bg-surface/80 hover:text-ink"
               )}
             >
               {s.label}
@@ -112,11 +121,7 @@ export function PoolTable() {
               className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 transition-colors hover:bg-surface/60 md:grid-cols-[2.4fr_1.2fr_1fr_1fr_0.8fr] md:items-center md:py-3.5"
             >
               <div className="col-span-2 flex items-center gap-3 md:col-span-1">
-                <span
-                  className="size-10 shrink-0 rounded-lg ring-1 ring-inset ring-white/10"
-                  style={{background: p.swatch}}
-                  aria-hidden
-                />
+                <Thumbnail src={poolImage(p.id)} swatch={p.swatch} alt={p.title} />
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="truncate font-medium text-ink">{p.title}</span>
@@ -129,8 +134,22 @@ export function PoolTable() {
                       </span>
                     )}
                   </div>
-                  <div className="truncate text-xs text-muted">
-                    {p.medium} · {p.creator}
+                  <div className="truncate font-mono text-xs text-muted">
+                    by{" "}
+                    <span
+                      onClick={(e) => e.preventDefault()}
+                      onClickCapture={(e) => e.stopPropagation()}
+                    >
+                      <ExplorerLink
+                        value={p.creatorAddress}
+                        type="address"
+                        prefixChars={4}
+                        suffixChars={4}
+                        className="text-muted hover:text-ink"
+                      />
+                    </span>
+                    {" · "}
+                    {p.id.slice(0, 6)}…{p.id.slice(-4)}
                   </div>
                 </div>
               </div>
@@ -142,9 +161,13 @@ export function PoolTable() {
                 </div>
               </Cell>
               <Cell label="Fee" right>
-                <span className="font-mono text-sm tnum text-ink">
-                  {p.gated ? "n/a" : formatFeeBps(dynamicFeeBps(p.drs, p.baseFeeBps, p.maxFeeBps))}
-                </span>
+                {p.gated ? (
+                  <span className="font-mono text-sm text-risk-high">Gated</span>
+                ) : (
+                  <span className="font-mono text-sm tnum text-ink">
+                    {formatFeeBps(dynamicFeeBps(p.drs, p.baseFeeBps, p.maxFeeBps))}
+                  </span>
+                )}
               </Cell>
               <Cell label="TVL" right>
                 {p.tvlUsd !== null ? (
@@ -157,16 +180,43 @@ export function PoolTable() {
                 )}
               </Cell>
               <Cell label="APY" right>
-                <span className="flex flex-col md:items-end">
+                {p.apyPct !== null ? (
+                  <span className="flex flex-col md:items-end">
+                    <span className="font-mono text-sm tnum text-ink">{p.apyPct.toFixed(1)}%</span>
+                    <span className="text-[10px] text-faint">est.</span>
+                  </span>
+                ) : (
                   <span className="font-mono text-sm tnum text-muted">-</span>
-                  <span className="text-[10px] text-faint">n/a on testnet</span>
-                </span>
+                )}
               </Cell>
             </Link>
           ))}
         </div>
       </div>
     </div>
+  );
+}
+
+function Thumbnail({src, swatch, alt}: {src: string | null; swatch: string; alt: string}) {
+  const [err, setErr] = useState(false);
+  if (!src || err) {
+    return (
+      <span
+        className="size-10 shrink-0 rounded-lg ring-1 ring-inset ring-white/10"
+        style={{background: swatch}}
+        aria-hidden
+      />
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return (
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setErr(true)}
+      className="size-10 shrink-0 rounded-lg object-cover ring-1 ring-inset ring-white/10"
+    />
   );
 }
 

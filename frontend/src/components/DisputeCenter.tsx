@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useEffect, useRef, useState} from "react";
 import {
   useAccount,
   usePublicClient,
@@ -10,11 +10,13 @@ import {
 } from "wagmi";
 import {ConnectButton} from "@rainbow-me/rainbowkit";
 import {toast} from "sonner";
-import {ShieldQuestion, Clock, Loader2, ShieldCheck} from "lucide-react";
+import {ShieldQuestion, Clock, Loader2, ShieldCheck, ChevronDown} from "lucide-react";
 import {formatEther, isHex, parseAbiItem, type Address} from "viem";
 import {Card} from "./ui/Card";
 import {Button} from "./ui/Button";
+import {ExplorerLink} from "./ExplorerLink";
 import {useContractMeta} from "@/hooks/useContractMeta";
+import {useAttestations} from "@/hooks/useAttestations";
 import {REGISTRY_ABI} from "@/lib/abis";
 import {REGISTRY_ADDRESS} from "@/lib/contracts";
 
@@ -51,6 +53,21 @@ export function DisputeCenter() {
   const [target, setTarget] = useState("");
   const [reason, setReason] = useState("");
   const {disputeBond, disputeBondEth} = useContractMeta();
+  const {pools, isLoading: poolsLoading} = useAttestations();
+
+  // ── Wallet-switch detection: reset form when account changes ──────────────
+  const prevAddressRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (prevAddressRef.current === undefined) {
+      prevAddressRef.current = address;
+      return;
+    }
+    if (address !== prevAddressRef.current) {
+      prevAddressRef.current = address;
+      setTarget("");
+      setReason("");
+    }
+  }, [address]);
 
   // ── Live active disputes (bounded recent window) ──────────────────────────
   const [disputes, setDisputes] = useState<ActiveDispute[]>([]);
@@ -209,13 +226,29 @@ export function DisputeCenter() {
         </p>
 
         <label className="mt-6 block">
-          <span className="text-xs text-muted">Attestation ID</span>
-          <input
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
-            placeholder="0x… (32-byte attestation id)"
-            className="mt-1.5 h-11 w-full rounded-xl border border-border bg-bg px-3 font-mono text-sm text-ink placeholder:text-faint focus-visible:border-border-strong"
-          />
+          <span className="text-xs text-muted">Attestation</span>
+          <div className="relative mt-1.5">
+            <select
+              value={target}
+              onChange={(e) => setTarget(e.target.value)}
+              disabled={poolsLoading}
+              className="h-11 w-full appearance-none rounded-xl border border-border bg-bg px-3 pr-10 text-sm text-ink focus-visible:border-border-strong disabled:opacity-50"
+            >
+              <option value="" disabled>
+                {poolsLoading ? "Loading attestations…" : "Select an attestation"}
+              </option>
+              {pools.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title} ({p.id.slice(0, 6)}…{p.id.slice(-4)})
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+              strokeWidth={2}
+              aria-hidden
+            />
+          </div>
         </label>
 
         <label className="mt-4 block">
@@ -293,9 +326,24 @@ export function DisputeCenter() {
               <Card key={d.attestationId} className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="truncate font-mono text-sm text-ink">{shortHash(d.attestationId)}</div>
-                    <div className="truncate font-mono text-xs text-muted">
-                      by {shortHash(d.disputer)}
+                    <div className="truncate font-mono text-sm">
+                      <ExplorerLink
+                        value={d.attestationId}
+                        type="tx"
+                        prefixChars={6}
+                        suffixChars={6}
+                        className="text-ink hover:text-primary-ink"
+                      />
+                    </div>
+                    <div className="mt-0.5 truncate font-mono text-xs text-muted">
+                      by{" "}
+                      <ExplorerLink
+                        value={d.disputer}
+                        type="address"
+                        prefixChars={4}
+                        suffixChars={4}
+                        className="text-muted hover:text-ink"
+                      />
                     </div>
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-border bg-surface-2 px-2.5 py-1 text-[11px] text-muted">

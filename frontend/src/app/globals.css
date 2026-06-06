@@ -159,6 +159,20 @@
   .reveal {
     animation: reveal 0.7s var(--ease-out-expo) both;
   }
+  /* Soft breathing glow behind the active DRS marker (the one allowed glow). */
+  .drs-marker-glow {
+    animation: drs-pulse 2.6s var(--ease-out-quart) infinite;
+  }
+}
+
+@keyframes drs-pulse {
+  0%,
+  100% {
+    opacity: 0.16;
+  }
+  50% {
+    opacity: 0.34;
+  }
 }
 
 @keyframes reveal {

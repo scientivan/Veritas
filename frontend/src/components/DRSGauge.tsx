@@ -1,7 +1,7 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {animate, useReducedMotion} from "motion/react";
+import {animate, motion, useReducedMotion} from "motion/react";
 import {tierForDrs, TIER_META} from "@/lib/drs";
 import {RiskPill} from "./RiskPill";
 import {formatPct, cn} from "@/lib/utils";
@@ -93,7 +93,8 @@ export function DRSGauge({
             pathLength={1}
             strokeDasharray={`${Math.max(shown, 0.0001)} 1`}
           />
-          {/* Value marker. */}
+          {/* Value marker, with a soft glow on the active reading (the one place DESIGN.md allows glow). */}
+          <circle cx={marker.x} cy={marker.y} r={13} fill={meta.cssVar} opacity={0.22} className="drs-marker-glow" />
           <circle cx={marker.x} cy={marker.y} r={7.5} fill="var(--bg)" />
           <circle cx={marker.x} cy={marker.y} r={5} fill={meta.cssVar} />
         </svg>
@@ -114,14 +115,15 @@ export function DRSGauge({
 
       {/* D / A breakdown: the two channels that compose the score. */}
       <div className="mt-5 grid w-full max-w-[260px] grid-cols-1 gap-2.5">
-        <Channel label="Duplication" sub="D" value={d} />
-        <Channel label="AI replicability" sub="A" value={a} />
+        <Channel label="Duplication" sub="D" value={d} delay={0.5} />
+        <Channel label="AI replicability" sub="A" value={a} delay={0.62} />
       </div>
     </div>
   );
 }
 
-function Channel({label, sub, value}: {label: string; sub: string; value: number}) {
+function Channel({label, sub, value, delay = 0}: {label: string; sub: string; value: number; delay?: number}) {
+  const reduce = useReducedMotion();
   return (
     <div className="flex items-center gap-3">
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -132,9 +134,11 @@ function Channel({label, sub, value}: {label: string; sub: string; value: number
           <span className="font-mono tnum text-ink">{formatPct(value)}</span>
         </div>
         <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
-          <div
-            className="h-full rounded-full bg-primary-ink/70 transition-[width] duration-700 ease-out"
-            style={{width: `${Math.round(value * 100)}%`}}
+          <motion.div
+            className="h-full rounded-full bg-primary-ink/70"
+            initial={reduce ? false : {width: 0}}
+            animate={{width: `${Math.round(value * 100)}%`}}
+            transition={reduce ? {duration: 0} : {duration: 0.8, ease: [0.16, 1, 0.3, 1], delay}}
           />
         </div>
       </div>

@@ -1,7 +1,7 @@
 import type {Metadata} from "next";
 import {notFound} from "next/navigation";
 import Link from "next/link";
-import {ArrowLeft, Radio} from "lucide-react";
+import {ArrowLeft, Radio, ExternalLink} from "lucide-react";
 import {Nav} from "@/components/Nav";
 import {Footer} from "@/components/Footer";
 import {DRSGauge} from "@/components/DRSGauge";
@@ -11,11 +11,19 @@ import {LivePoolCard} from "@/components/LivePoolCard";
 import {Card} from "@/components/ui/Card";
 import {getOnChainPool} from "@/lib/serverRegistry";
 import {getLivePool, getLivePoolTvl} from "@/lib/livePools";
+import {poolImage} from "@/lib/poolMeta";
 import {dynamicFeeBps} from "@/lib/drs";
 import {formatFeeBps, formatPct, formatUsd, shortenAddress, shortenHash} from "@/lib/utils";
+import {ExplorerLink} from "@/components/ExplorerLink";
 
 function isAttestationId(id: string): id is `0x${string}` {
   return id.startsWith("0x") && id.length === 66;
+}
+
+/** A public gateway URL for a real IPFS CID, or undefined for placeholder CIDs. */
+function ipfsGateway(ipfsCid: string): string | undefined {
+  const cid = ipfsCid.replace(/^ipfs:\/\//, "");
+  return /^(bafy|bafk|Qm)/i.test(cid) ? `https://gateway.pinata.cloud/ipfs/${cid}` : undefined;
 }
 
 export async function generateMetadata({params}: {params: Promise<{id: string}>}): Promise<Metadata> {
@@ -54,15 +62,24 @@ export default async function PoolDetail({params}: {params: Promise<{id: string}
           {/* Header */}
           <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center">
             <span
-              className="size-16 shrink-0 rounded-2xl ring-1 ring-inset ring-white/10"
+              className="size-16 shrink-0 overflow-hidden rounded-2xl ring-1 ring-inset ring-white/10"
               style={{background: pool.swatch}}
               aria-hidden
-            />
+            >
+              {poolImage(pool.id) && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={poolImage(pool.id)!} alt={pool.title} className="size-full object-cover" />
+              )}
+            </span>
             <div className="flex-1">
               <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">{pool.title}</h1>
               <p className="mt-1 text-sm text-muted">
                 {pool.medium} · by {pool.creator}{" "}
-                <span className="font-mono text-faint">({shortenAddress(pool.creatorAddress)})</span>
+                <ExplorerLink
+                  value={pool.creatorAddress}
+                  type="address"
+                  className="text-faint hover:text-muted"
+                />
               </p>
             </div>
             {pool.living && (
@@ -96,9 +113,14 @@ export default async function PoolDetail({params}: {params: Promise<{id: string}
               <Card className="p-6">
                 <h2 className="font-display text-lg font-semibold text-ink">Provenance</h2>
                 <dl className="mt-4 grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
-                  <Fact label="pHash fingerprint" mono value={shortenHash(pool.pHash, 10, 6)} />
+                  <Fact label="pHash fingerprint" mono value={shortenHash(pool.pHash, 10, 6)} explorerValue={pool.pHash} explorerType="address" />
                   <Fact label="Near-duplicates" value={`${pool.duplicateCount}`} />
-                  <Fact label="IPFS CID" mono value={shortenHash(pool.ipfsCid, 12, 6)} />
+                  <Fact
+                    label="IPFS CID"
+                    mono
+                    value={shortenHash(pool.ipfsCid, 12, 6)}
+                    href={ipfsGateway(pool.ipfsCid)}
+                  />
                   <Fact label="Attested" value={fmtDate(pool.attestedAt)} />
                 </dl>
               </Card>
@@ -145,24 +167,52 @@ function Fact({
   value,
   mono,
   inline,
+  explorerValue,
+  explorerType,
+  href,
 }: {
   label: string;
   value: string;
   mono?: boolean;
   inline?: boolean;
+  explorerValue?: string;
+  explorerType?: "address" | "tx";
+  href?: string;
 }) {
+  const valueNode = explorerValue ? (
+    <ExplorerLink value={explorerValue} type={explorerType ?? "address"} label={value} />
+  ) : href ? (
+    <dd>
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 font-mono text-sm text-primary-ink underline-offset-2 hover:underline"
+      >
+        {value}
+        <ExternalLink className="size-3" strokeWidth={2} aria-hidden />
+      </a>
+    </dd>
+  ) : (
+    <dd className={mono ? "font-mono text-sm text-ink" : "text-sm text-ink"}>{value}</dd>
+  );
+
   if (inline) {
     return (
       <div className="flex items-center justify-between">
         <dt className="text-muted">{label}</dt>
-        <dd className="font-mono tnum text-ink">{value}</dd>
+        {explorerValue ? (
+          valueNode
+        ) : (
+          <dd className="font-mono tnum text-ink">{value}</dd>
+        )}
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-1">
       <dt className="text-xs text-muted">{label}</dt>
-      <dd className={mono ? "font-mono text-sm text-ink" : "text-sm text-ink"}>{value}</dd>
+      {valueNode}
     </div>
   );
 }

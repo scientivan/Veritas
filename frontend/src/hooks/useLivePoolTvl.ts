@@ -3,8 +3,10 @@ import {useReadContracts} from "wagmi";
 import {formatUnits} from "viem";
 import {POOL_MANAGER_ADDRESS} from "@/lib/contracts";
 import {getLivePool, type LivePool} from "@/lib/livePools";
+import {ASSUMED_TOKEN_PRICE_USD} from "@/lib/poolMeta";
 
-/** Minimal ERC20 slice: balanceOf + decimals. */
+/** Minimal ERC20 slice. The pools use Uniswap's TestERC20 whose decimals() reverts,
+ * so we never call it and assume the standard 18 (TestERC20 is 18-decimal). */
 const ERC20_ABI = [
   {
     name: "balanceOf",
@@ -13,14 +15,9 @@ const ERC20_ABI = [
     inputs: [{name: "account", type: "address"}],
     outputs: [{name: "", type: "uint256"}],
   },
-  {
-    name: "decimals",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{name: "", type: "uint8"}],
-  },
 ] as const;
+
+const DECIMALS = 18;
 
 /**
  * Real (assumed $1/token, testnet) TVL for live pools. Because each pool uses
@@ -33,9 +30,7 @@ export function useLivePoolTvl(pools: LivePool[]): Map<string, number | null> {
     () =>
       pools.flatMap((p) => [
         {address: p.token0, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS] as [`0x${string}`]},
-        {address: p.token0, abi: ERC20_ABI, functionName: "decimals" as const},
         {address: p.token1, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS] as [`0x${string}`]},
-        {address: p.token1, abi: ERC20_ABI, functionName: "decimals" as const},
       ]),
     [pools]
   );
@@ -45,20 +40,13 @@ export function useLivePoolTvl(pools: LivePool[]): Map<string, number | null> {
   return useMemo(() => {
     const map = new Map<string, number | null>();
     pools.forEach((p, idx) => {
-      const base = idx * 4;
+      const base = idx * 2;
       const bal0 = data?.[base];
-      const dec0 = data?.[base + 1];
-      const bal1 = data?.[base + 2];
-      const dec1 = data?.[base + 3];
-      if (
-        bal0?.status === "success" &&
-        dec0?.status === "success" &&
-        bal1?.status === "success" &&
-        dec1?.status === "success"
-      ) {
-        const tokens0 = Number(formatUnits(bal0.result as bigint, dec0.result as number));
-        const tokens1 = Number(formatUnits(bal1.result as bigint, dec1.result as number));
-        map.set(p.attestationId.toLowerCase(), tokens0 + tokens1);
+      const bal1 = data?.[base + 1];
+      if (bal0?.status === "success" && bal1?.status === "success") {
+        const tokens0 = Number(formatUnits(bal0.result as bigint, DECIMALS));
+        const tokens1 = Number(formatUnits(bal1.result as bigint, DECIMALS));
+        map.set(p.attestationId.toLowerCase(), (tokens0 + tokens1) * ASSUMED_TOKEN_PRICE_USD);
       } else {
         map.set(p.attestationId.toLowerCase(), null);
       }

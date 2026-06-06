@@ -1,13 +1,10 @@
-import {Waves, ExternalLink} from "lucide-react";
+import {Waves} from "lucide-react";
 import {Card} from "./ui/Card";
+import {ExplorerLink} from "./ExplorerLink";
 import {dynamicFeeBps} from "@/lib/drs";
 import {formatFeeBps} from "@/lib/utils";
-import {EXPLORER} from "@/lib/contracts";
 import type {LivePool} from "@/lib/livePools";
 
-function short(addr: string) {
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
-}
 
 /** Surfaces a real Uniswap v4 pool opened through the hook for this attestation. */
 export function LivePoolCard({pool, drs}: {pool: LivePool; drs: number}) {
@@ -28,17 +25,16 @@ export function LivePoolCard({pool, drs}: {pool: LivePool; drs: number}) {
       <dl className="mt-4 flex flex-col gap-3 text-sm">
         <Row label="Dynamic LP fee (now)" value={formatFeeBps(fee)} />
         <Row label="Fee range" value={`${formatFeeBps(pool.baseFeeBps)} to ${formatFeeBps(pool.maxFeeBps)}`} />
-        <Row label="Token pair" value={`${short(pool.token0)} / ${short(pool.token1)}`} mono />
-        <Row label="Pool id" value={short(pool.poolId)} mono />
+        <RowLink label="Token 0" value={pool.token0} />
+        <RowLink label="Token 1" value={pool.token1} />
+        <RowLink label="Pool id" value={pool.poolId} type="tx" />
       </dl>
-      <a
-        href={`${EXPLORER}/address/${pool.token0}`}
-        target="_blank"
-        rel="noreferrer"
-        className="mt-4 inline-flex items-center gap-1.5 text-xs text-muted hover:text-ink"
-      >
-        View token on Uniscan <ExternalLink className="size-3" />
-      </a>
+      <ExplorerLink
+        value={pool.token0}
+        type="address"
+        label="View token on Uniscan"
+        className="mt-4 text-xs text-muted hover:text-ink"
+      />
     </Card>
   );
 }
@@ -48,6 +44,17 @@ function Row({label, value, mono}: {label: string; value: string; mono?: boolean
     <div className="flex items-center justify-between gap-3">
       <dt className="text-muted">{label}</dt>
       <dd className={mono ? "font-mono text-xs text-ink" : "font-mono tnum text-ink"}>{value}</dd>
+    </div>
+  );
+}
+
+function RowLink({label, value, type = "address"}: {label: string; value: string; type?: "address" | "tx"}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <dt className="text-muted">{label}</dt>
+      <dd>
+        <ExplorerLink value={value} type={type} prefixChars={4} suffixChars={4} />
+      </dd>
     </div>
   );
 }

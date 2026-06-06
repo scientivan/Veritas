@@ -31,11 +31,16 @@ export function Nav() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  "rounded-lg px-3 py-1.5 text-sm transition-colors",
-                  active ? "text-ink" : "text-muted hover:text-ink"
+                  "relative rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200",
+                  active
+                    ? "bg-primary/10 text-primary-ink shadow-[inset_0_-2px_0_0_var(--color-primary-ink)/40]"
+                    : "text-muted hover:bg-surface hover:text-ink"
                 )}
               >
                 {link.label}
+                {active && (
+                  <span className="absolute inset-x-2 bottom-0 h-px rounded-full bg-primary-ink opacity-60" />
+                )}
               </Link>
             );
           })}

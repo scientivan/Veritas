@@ -5,8 +5,9 @@ import {useAccount, useWriteContract, useWaitForTransactionReceipt} from "wagmi"
 import {ConnectButton} from "@rainbow-me/rainbowkit";
 import {toast} from "sonner";
 import type {Hex} from "viem";
-import {UploadCloud, Check, Loader2, ArrowRight, RotateCcw, ExternalLink} from "lucide-react";
+import {UploadCloud, Check, Loader2, ArrowRight, RotateCcw} from "lucide-react";
 import {DRSGauge} from "./DRSGauge";
+import {ExplorerLink} from "./ExplorerLink";
 import {Button} from "./ui/Button";
 import {DRS_GATE, dynamicFeeBps} from "@/lib/drs";
 import {useContractMeta} from "@/hooks/useContractMeta";
@@ -100,6 +101,25 @@ export function AttestFlow() {
   const [txHash, setTxHash] = useState<Hex | undefined>();
   const [attestationId, setAttestationId] = useState<Hex | undefined>();
   const {isLoading: isConfirming, isSuccess: isConfirmed} = useWaitForTransactionReceipt({hash: txHash});
+
+  // ── Wallet-switch detection: reset all local state when account changes ─────
+  const prevAddressRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (prevAddressRef.current === undefined) {
+      prevAddressRef.current = address;
+      return;
+    }
+    if (address !== prevAddressRef.current) {
+      prevAddressRef.current = address;
+      setSubject(null);
+      setAnalyzed(null);
+      setPhase("idle");
+      setStep(0);
+      setErrorMsg("");
+      setTxHash(undefined);
+      setAttestationId(undefined);
+    }
+  }, [address]);
 
   // Kick off a real oracle analysis (preview, no wallet needed).
   const start = useCallback(async (s: Subject) => {
@@ -388,14 +408,15 @@ export function AttestFlow() {
             )}
 
             {txHash && (
-              <a
-                href={`https://sepolia.uniscan.xyz/tx/${txHash}`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted hover:text-ink"
-              >
-                View transaction <ExternalLink className="size-3" />
-              </a>
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted">
+                Tx:
+                <ExplorerLink
+                  value={txHash}
+                  type="tx"
+                  label="View transaction on Uniscan"
+                  prefixChars={6}
+                />
+              </div>
             )}
           </div>
         )}

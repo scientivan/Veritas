@@ -5,6 +5,7 @@ import {REGISTRY_ADDRESS} from "./contracts";
 import {combineDrs, DRS_GATE, BASE_FEE_BPS, MAX_FEE_BPS} from "./drs";
 import {hasLivePool} from "./livePools";
 import {KNOWN_ATTESTATION_IDS, isKnownLiving} from "./knownAttestations";
+import {poolTitle} from "./poolMeta";
 import type {Pool} from "./types";
 
 const client = createPublicClient({
@@ -46,7 +47,7 @@ function recordToPool(attestationId: `0x${string}`, rec: OnChainRecord): Pool {
 
   return {
     id: attestationId,
-    title: rec.ipfsCid ? `${rec.ipfsCid.slice(0, 14)}…` : `Attestation ${attestationId.slice(0, 10)}`,
+    title: poolTitle(attestationId, rec.ipfsCid),
     medium: "Attested content",
     creator: rec.owner.slice(0, 6) + "…" + rec.owner.slice(-4),
     creatorAddress: rec.owner,

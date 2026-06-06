@@ -37,6 +37,24 @@ const POOLS: LivePool[] = [
     maxFeeBps: 10000,
     drsGateThreshold: 8500,
   },
+  {
+    attestationId: "0xeca8861a2533832cfd036228c91a9a8271944ea6c2df9d84f00c75373117a1c3",
+    poolId: "0xefadbb4f8d6458547bf2ecf5f8eefbda292f54d11dcd6637c4da9722d149817f",
+    token0: "0x11d83a56d06963c72817C76854C0710Fe88C4582",
+    token1: "0x406EC8B57837e83802B0E699cFCB46b2efA2b8cC",
+    baseFeeBps: 3000,
+    maxFeeBps: 10000,
+    drsGateThreshold: 8500,
+  },
+  {
+    attestationId: "0x64e1d0819681e2b7820138e89bceeb333a3b10a9d87286bd857fcb8b9cb0f3e6",
+    poolId: "0x8c8868a674b13f69f1644074137c7c99ac5f3201edacb8808df8af1657a0053c",
+    token0: "0xa7E576AD9878bD3C7285AeEC808708432f2c933C",
+    token1: "0xBdCD508Aa37575b25a8311c544f7E47e50D65556",
+    baseFeeBps: 3000,
+    maxFeeBps: 10000,
+    drsGateThreshold: 8500,
+  },
 ];
 
 const BY_ATTESTATION = new Map(POOLS.map((p) => [p.attestationId.toLowerCase(), p]));
@@ -54,7 +72,8 @@ export function getLivePoolList(): LivePool[] {
   return POOLS;
 }
 
-/** Minimal ERC20 slice: balanceOf + decimals. */
+/** Minimal ERC20 slice. The pools use Uniswap's TestERC20 whose decimals() reverts,
+ * so we never call it and assume the standard 18. */
 const ERC20_ABI = [
   {
     name: "balanceOf",
@@ -63,14 +82,9 @@ const ERC20_ABI = [
     inputs: [{name: "account", type: "address"}],
     outputs: [{name: "", type: "uint256"}],
   },
-  {
-    name: "decimals",
-    type: "function",
-    stateMutability: "view",
-    inputs: [],
-    outputs: [{name: "", type: "uint8"}],
-  },
 ] as const;
+
+const DECIMALS = 18;
 
 const tvlClient = createPublicClient({
   chain: unichainSepolia,
@@ -86,14 +100,12 @@ export async function getLivePoolTvl(
   pool: LivePool
 ): Promise<{tvlTokens: number; tvlUsd: number} | null> {
   try {
-    const [bal0, dec0, bal1, dec1] = await Promise.all([
+    const [bal0, bal1] = await Promise.all([
       tvlClient.readContract({address: pool.token0, abi: ERC20_ABI, functionName: "balanceOf", args: [POOL_MANAGER_ADDRESS]}),
-      tvlClient.readContract({address: pool.token0, abi: ERC20_ABI, functionName: "decimals"}),
       tvlClient.readContract({address: pool.token1, abi: ERC20_ABI, functionName: "balanceOf", args: [POOL_MANAGER_ADDRESS]}),
-      tvlClient.readContract({address: pool.token1, abi: ERC20_ABI, functionName: "decimals"}),
     ]);
-    const tokens0 = Number(formatUnits(bal0 as bigint, dec0 as number));
-    const tokens1 = Number(formatUnits(bal1 as bigint, dec1 as number));
+    const tokens0 = Number(formatUnits(bal0 as bigint, DECIMALS));
+    const tokens1 = Number(formatUnits(bal1 as bigint, DECIMALS));
     const tvlTokens = tokens0 + tokens1;
     // Assumed $1 per token on testnet.
     return {tvlTokens, tvlUsd: tvlTokens};

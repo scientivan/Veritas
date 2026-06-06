@@ -3,7 +3,7 @@ import {Fraunces, Hanken_Grotesk, IBM_Plex_Mono} from "next/font/google";
 import "./globals.css";
 import {Providers} from "./providers";
 import {themeInitScript} from "@/components/theme/ThemeProvider";
-import {DetectorLens} from "@/components/DetectorLens";
+import {LandingLens} from "@/components/LandingLens";
 
 const display = Fraunces({
   variable: "--font-display",
@@ -39,7 +39,7 @@ export default function RootLayout({children}: Readonly<{children: React.ReactNo
       <body className="min-h-full bg-bg text-ink">
         <script dangerouslySetInnerHTML={{__html: themeInitScript}} />
         <Providers>
-          <DetectorLens />
+          <LandingLens />
           <div className="relative z-10 flex min-h-screen flex-col">{children}</div>
         </Providers>
       </body>

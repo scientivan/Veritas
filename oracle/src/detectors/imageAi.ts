@@ -52,8 +52,9 @@ export async function imageAiScore(image: RawImage): Promise<{a: number; source:
   }
   const aiRaw = results.find((r) => r.label.toLowerCase() === AI_RAW_LABEL)?.score ?? 0;
   const realRaw = results.find((r) => r.label.toLowerCase() === REAL_RAW_LABEL)?.score ?? 0;
-  const a = calibrateAi(aiRaw, realRaw);
-  return {a, source: `${MODEL_ID} (T=${config.imageAiTemperature})`};
+  // Temperature-calibrate, then cap: a single unreliable detector cannot gate alone.
+  const a = Math.min(calibrateAi(aiRaw, realRaw), config.imageAiMaxContribution);
+  return {a, source: `${MODEL_ID} (T=${config.imageAiTemperature}, capped ${config.imageAiMaxContribution})`};
 }
 
 export async function warmImageAi(image: RawImage): Promise<{label: string; score: number}[]> {
