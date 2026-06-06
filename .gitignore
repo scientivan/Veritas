@@ -1,0 +1,130 @@
+notes.txt
+// ...existing code...
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# macOS / swap
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+**/.env
+*.key
+*.pem
+*.crt
+*.p12
+*.secret
+*.asc
+secrets.json
+
+# Build / cache / coverage
+dist/
+build/
+out/
+coverage/
+coverage/**
+
+# Next.js
+.next/
+.next/**
+
+# Vite / Parcel / webpack caches
+.cache/
+.parcel-cache/
+
+# Various CI / platform build outputs
+.vercel/
+.turbo/
+.nuxt/
+.svelte-kit/
+
+# Frontend dev artifacts
+frontend/.next/
+frontend/.next/**
+
+# Solidity / Foundry / Hardhat artifacts & broadcasts
+**/artifacts/
+**/build/
+**/out/
+**/cache/
+**/broadcast/
+**/deployments/
+artifacts/
+cache/
+build/
+out/
+broadcast/
+deployments/
+
+# Common generated files
+*.wasm
+*.map
+
+# Local agent / assistant state (do NOT push)
+.agents/
+.claude/
+.gemini/
+.cursor/
+
+# Misc
+*.pid
+*.seed
+*.sqlite
+*.sqlite3
+
+# End
+// ...existing code...
+
+# Foundry / build artifacts
+out/
+cache/
+artifacts/
+build/
+out/**
+
+# Broadcast / local deployments / ephemeral
+broadcast/
+broadcasts/
+
+# Deployments produced by scripts (ignore all unless you intentionally keep some)
+deployments/
+
+# Local env / secrets
+.env
+.env.*
+secrets.json
+
+# IDE / OS
+.DS_Store
+*.swp
+
+# Optional: ignore test output / coverage
+coverage/
+
+DEMO.md
+DESIGN.md
+
+PRODUCT.md
