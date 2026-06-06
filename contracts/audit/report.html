@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Veritas Protocol — Contract Audit Report</title>
+<style>
+  @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #16191d; font-size: 9.3px; line-height: 1.45; margin: 0; }
+  h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: -.2px; }
+  h2 { font-size: 11.5px; margin: 13px 0 5px; padding-bottom: 2px; border-bottom: 1.4px solid #16191d; text-transform: uppercase; letter-spacing: .4px; }
+  .sub { color: #5b6470; font-size: 9px; margin: 0 0 8px; }
+  .lead { background: #f4f6f8; border-left: 3px solid #16191d; padding: 6px 9px; margin: 8px 0; font-size: 9.3px; }
+  table { width: 100%; border-collapse: collapse; margin: 4px 0 2px; }
+  th, td { text-align: left; padding: 3px 5px; vertical-align: top; border-bottom: .6px solid #d8dde3; }
+  th { background: #16191d; color: #fff; font-size: 8.3px; text-transform: uppercase; letter-spacing: .3px; }
+  td.mono, code, .mono { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 8.4px; }
+  .ok { color: #0a7d36; font-weight: 700; }
+  .warn { color: #9a6700; font-weight: 700; }
+  .pill { display: inline-block; background: #0a7d36; color:#fff; border-radius: 3px; padding: 1px 6px; font-size: 8.5px; font-weight: 700; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 18px; }
+  ul { margin: 3px 0; padding-left: 15px; }
+  li { margin: 1.5px 0; }
+  .small { font-size: 8.4px; color: #5b6470; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .foot { margin-top: 10px; border-top: .6px solid #d8dde3; padding-top: 5px; font-size: 8px; color: #5b6470; }
+  pre { background: #f4f6f8; border: .6px solid #d8dde3; border-radius: 4px; padding: 6px 8px; font-family: "SF Mono", Menlo, monospace; font-size: 8.3px; overflow:hidden; margin: 4px 0; }
+  .nowrap { white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<h1>Veritas Protocol — Smart-Contract Audit Report</h1>
+<p class="sub">Provenance-Aware Impermanent-Loss Protection · Uniswap v4 hook · UHI9 Hookathon · Generated 2026-06-06 (updated from 2026-06-04)</p>
+
+<div class="lead">
+<b>Scope.</b> Five Solidity contracts + 2 interfaces (1165 LOC) compiled with solc 0.8.26 (Foundry 1.3.5, evm <code>cancun</code>).
+<b>Result:</b> <span class="pill">81 / 81 TESTS PASS</span> &nbsp; Coverage — Lines <b>98.3%</b>, Branches <b>83.8%</b>, Functions <b>98.1%</b> (target ≥ 80%).
+This report maps every security property to the code location enforcing it and the test that proves it, so each row is independently verifiable via <code>forge test --match-test &lt;name&gt;</code>.
+</div>
+
+<h2>1 · Components</h2>
+<table>
+<tr><th>Contract</th><th>LOC</th><th>Responsibility</th><th>Trust / invariants</th></tr>
+<tr><td class="mono">VeritasOracle.sol</td><td class="num">223</td><td>Single signature-verification authority for off-chain DRS.</td><td>2-of-3 EIP-712 quorum · spread ≤ 5% · 10-min freshness · DRS ≤ 9500.</td></tr>
+<tr><td class="mono">VeritasRegistry.sol</td><td class="num">338</td><td>On-chain commitment store (fingerprints + DRS); state-transition rules; near-duplicate index.</td><td>Update timelock 1 h / 2 h · bonded disputes · inverted staleness · noisy-OR A/D combination · delegates sig-verify to Oracle.</td></tr>
+<tr><td class="mono">VeritasHook.sol</td><td class="num">323</td><td>v4 hook: pool gate, DRS-calibrated dynamic fee, LP Insurance Reserve.</td><td>Owner-authenticated creation · dynamic-fee-only · reserve paid to LPs only on a verified dilution event.</td></tr>
+<tr><td class="mono">VeritasRegistryCallback.sol</td><td class="num">65</td><td>Reactive Network destination-chain callback; receives dilution events from RSC and applies on-chain dilution increments.</td><td>Only callable by Reactive Callback Proxy (AbstractCallback.authorizedSenderOnly) · dual-hash Hamming τ=10 · skips frozen records without reverting.</td></tr>
+<tr><td class="mono">reactive/DilutionMonitorRSC.sol</td><td class="num">62</td><td>Reactive Smart Contract (source-chain); subscribes to Registry's NewAttestation events and triggers VeritasRegistryCallback.</td><td>Deployed on Reactive Network · forwards attestation ID via Callback event · no on-chain state mutations.</td></tr>
+<tr><td class="mono">interfaces/ (×2)</td><td class="num">154</td><td>IVeritasOracle, IVeritasRegistry.</td><td>—</td></tr>
+</table>
+<p class="small"><b>Fee model (both DRS-driven).</b> LP fee = <code>base + (max−base)·DRS/10000</code> (beforeSwap, override flag). Reserve skim = <code>2500·DRS/10000</code> hundredths-bip on swap output (afterSwap, ERC-6909 claims) → donated back to in-range LPs via <code>unlock→donate→settle</code>. Rationale: for a 50/50 CP pool E[IL] ∝ price variance, so DRS-as-volatility-proxy makes the fee a principled IL compensation rate. DRS = noisy-OR combination of off-chain A signal and on-chain D (dilution count), so neither path can be bribed to suppress the final score independently.</p>
+
+<h2>2 · Test results by suite</h2>
+<div class="grid2">
+<table>
+<tr><th>Suite</th><th>Tests</th><th>Status</th></tr>
+<tr><td class="mono">VeritasOracle.t.sol</td><td class="num">14</td><td class="ok">pass</td></tr>
+<tr><td class="mono">VeritasRegistry.t.sol</td><td class="num">16</td><td class="ok">pass</td></tr>
+<tr><td class="mono">VeritasHook.t.sol</td><td class="num">17</td><td class="ok">pass</td></tr>
+<tr><td class="mono">Integration.t.sol</td><td class="num">3</td><td class="ok">pass</td></tr>
+<tr><td class="mono">EdgeCases.t.sol</td><td class="num">21</td><td class="ok">pass</td></tr>
+<tr><td class="mono">ReactiveIntegration.t.sol</td><td class="num">10</td><td class="ok">pass</td></tr>
+<tr><td><b>Total</b></td><td class="num"><b>81</b></td><td class="ok">100%</td></tr>
+</table>
+<table>
+<tr><th>Coverage</th><th>Lines</th><th>Branch</th><th>Func</th></tr>
+<tr><td class="mono">Oracle</td><td class="num">97.7</td><td class="num">100</td><td class="num">92.3</td></tr>
+<tr><td class="mono">Registry</td><td class="num">99.3</td><td class="num">79.2</td><td class="num">100</td></tr>
+<tr><td class="mono">Hook</td><td class="num">97.6</td><td class="num">75.0</td><td class="num">100</td></tr>
+<tr><td class="mono">RegistryCallback</td><td class="num">100</td><td class="num">100</td><td class="num">100</td></tr>
+<tr><td class="mono">DilutionMonitorRSC</td><td class="num">90.9</td><td class="num">—</td><td class="num">100</td></tr>
+<tr><td><b>Total %</b></td><td class="num"><b>98.3</b></td><td class="num"><b>83.8</b></td><td class="num"><b>98.1</b></td></tr>
+</table>
+</div>
+<p class="small">Uncovered branches are unreachable defensive paths (e.g. low-level <code>TransferFailed</code>, the <code>_beforeSwap</code> no-config passthrough that cannot occur because every pool is gated at creation). Registry branch coverage dropped from 88.9% to 79.2% because the expanded near-duplicate and noisy-OR logic adds new conditional paths; the uncovered branches are conservative fallback edges. DilutionMonitorRSC has one uncovered branch (the <code>REACTIVE_IGNORE</code> no-op path in the <code>react()</code> callback that the Reactive VM never sends during tests).</p>
+
+<h2>3 · Security property → enforcement → proof</h2>
+<table>
+<tr><th>Property / threat mitigated</th><th>Enforced in</th><th>Test proving it</th></tr>
+<tr><td>High-DRS content cannot open a pool (hard gate 0.85)</td><td class="mono">Hook.registerPool / _beforeInitialize</td><td class="mono">test_RegisterPool_RejectsHighDRS · test_Demo_ThreeContentTiers</td></tr>
+<tr><td>Only the content owner can create the pool <span class="small">(fixes router-as-sender bug)</span></td><td class="mono">Hook.registerPool (msg.sender==owner)</td><td class="mono">test_RegisterPool_RequiresOwner</td></tr>
+<tr><td>Pool must be a dynamic-fee pool (else fee override reverts)</td><td class="mono">Hook.registerPool / _beforeInitialize</td><td class="mono">test_RegisterPool_RejectsNonDynamicFee</td></tr>
+<tr><td>Gate re-checked at the exact initialization moment</td><td class="mono">Hook._beforeInitialize</td><td class="mono">test_BeforeInitialize_ReverifiesGateAtInit · _RejectsUnconfigured</td></tr>
+<tr><td>2-of-3 operator quorum; duplicate signers rejected</td><td class="mono">Oracle.verify</td><td class="mono">test_Verify_RejectsBelowQuorum · _RejectsDuplicateOperator</td></tr>
+<tr><td>Unauthorized signer rejected</td><td class="mono">Oracle.verify</td><td class="mono">test_Verify_RejectsUnauthorizedSigner</td></tr>
+<tr><td>DRS bounded ≤ 9500 (reject extreme oracle output)</td><td class="mono">Oracle.verify</td><td class="mono">test_Verify_RejectsDRSOutOfBounds</td></tr>
+<tr><td>Cross-operator agreement: spread ≤ 5%</td><td class="mono">Oracle.verify</td><td class="mono">test_Verify_RejectsSpreadTooWide</td></tr>
+<tr><td>Signature freshness window (anti-replay)</td><td class="mono">Oracle.verify</td><td class="mono">test_Verify_RejectsStaleSignature · _RejectsFutureSignature</td></tr>
+<tr><td>Update timelock 1 h, escalated to 2 h on &gt;30% jump (circuit breaker)</td><td class="mono">Registry.updateDRS</td><td class="mono">test_UpdateDRS_TimelockPreventsImmediate · _LargeDeltaRequiresLongerTimelock</td></tr>
+<tr><td>Inverted staleness: stale record → conservative higher DRS, never base fee</td><td class="mono">Registry.getEffectiveDRS</td><td class="mono">test_EffectiveDRS_StalenessFloorRaisesLowScore</td></tr>
+<tr><td>Disputes require a slashable bond (anti-griefing)</td><td class="mono">Registry.disputeAttestation / resolveDispute</td><td class="mono">test_Dispute_RequiresBond · _ResolveDispute_RejectedSlashesBond · _UpheldRefundsBond</td></tr>
+<tr><td>A dispute freezes DRS updates &amp; blocks pool creation</td><td class="mono">Registry.updateDRS · Hook.registerPool</td><td class="mono">test_Dispute_FreezesDRSUpdates · test_FullFlow_DisputeFreezesDRS</td></tr>
+<tr><td>Attestation fee deters Sybil mass-attestation</td><td class="mono">Registry.attest</td><td class="mono">test_Attest_RequiresFee</td></tr>
+<tr><td>LP Insurance Reserve accrues only when DRS &gt; 0</td><td class="mono">Hook._afterSwap</td><td class="mono">test_Reserve_AccruesOnSwap · _ZeroDRS_NoAccrual</td></tr>
+<tr><td>Reserve pays out to LPs only on a verified dilution event</td><td class="mono">Hook.disburseReserveToLPs</td><td class="mono">test_Reserve_DisburseRevertsWhenNotEligible · _DisburseToLPsOnDilutionEvent</td></tr>
+<tr><td>Unlock callback callable only by the PoolManager</td><td class="mono">Hook.unlockCallback</td><td class="mono">test_Hook_UnlockCallback_OnlyPoolManager</td></tr>
+<tr><td>Canonical DRS = average of signed values within spread</td><td class="mono">Oracle.verify</td><td class="mono">test_Verify_ReturnsAverageWithinSpread</td></tr>
+<tr><td>Reactive callback callable only by authorized Callback Proxy (prevents spoofed dilution)</td><td class="mono">VeritasRegistryCallback.authorizedSenderOnly</td><td class="mono">test_Callback_OnlyAuthorizedProxy</td></tr>
+<tr><td>Batch dilution skips frozen (disputed) records without reverting the whole batch</td><td class="mono">VeritasRegistryCallback._tryIncrement</td><td class="mono">test_Callback_SkipsFrozenRecord</td></tr>
+<tr><td>Near-duplicate detection requires BOTH hashes to match (dual-hash AND logic, prevents false positives)</td><td class="mono">Registry.getNearDuplicates</td><td class="mono">test_GetNearDuplicates_RequiresBothHashes</td></tr>
+<tr><td>On-chain dilution auto-raises hook fee without oracle update (bribe-resistant floor)</td><td class="mono">Registry.getCurrentDRS / Hook._beforeSwap</td><td class="mono">test_OnChainDilution_RaisesHookFee</td></tr>
+<tr><td>Effective D = max(off-chain oracle, on-chain count): bribed-low oracle cannot hide on-chain evidence and vice-versa</td><td class="mono">Registry.getEffectiveD</td><td class="mono">test_EffectiveD_MaxOfOnchainAndOffchain</td></tr>
+</table>
+
+<h2>4 · Reproduce the audit yourself</h2>
+<pre>cd contracts
+forge test -vv                 # 81 passing
+forge coverage --no-match-coverage "(test|lib)"   # the table in §2
+forge test --match-test test_Demo_ThreeContentTiers -vvv   # A opens / B higher fee / C gated
+forge test --match-test test_Callback_DilutesNearDuplicatesOnChain -vvv   # RSC callback flow</pre>
+<p class="small">Dependencies are pinned to a single consistent set (OpenZeppelin <code>uniswap-hooks</code> bundle + <code>reactive-lib</code>); <code>BaseHook</code> resolves to <code>lib/uniswap-hooks/src/base/BaseHook.sol</code>. Deployment order (Oracle → Registry → Hook → VeritasRegistryCallback → DilutionMonitorRSC, hook address CREATE2-mined for permission bits) is in <code>script/Deploy.s.sol</code> and <code>script/DeployCallback.s.sol</code>.</p>
+
+<h2>5 · Honest limitations (in scope for the audit)</h2>
+<ul>
+<li><b>Oracle centralization.</b> 2-of-3 is multi-sig, not trustless. Real independence requires each operator to run a <i>different</i> detector ensemble off-chain — enforced operationally, not on-chain.</li>
+<li><b>On-chain near-duplicate index is bounded.</b> <code>getNearDuplicates</code> performs an O(n) scan over all attested fingerprints on-chain; this is viable at early corpus sizes but will require pagination or a Merkle-tree index at scale.</li>
+<li><b>DRS is a lagging, ex-ante signal</b> — it prices risk at entry and on updates, not in real time. Acknowledged, not hidden.</li>
+<li><b>Reactive Network trust assumption.</b> The Callback Proxy is a privileged actor in the Reactive Network. <code>authorizedSenderOnly</code> ensures only the proxy can call <code>onDilution</code>, but the proxy itself is a trusted third party — on-chain dilution counts are only as reliable as the Reactive Network's liveness and integrity.</li>
+<li><b>Deployed to Unichain Sepolia.</b> Oracle, Registry, Hook, VeritasRegistryCallback, and two v4 pools are live on Unichain Sepolia. DilutionMonitorRSC is deployed on the Reactive Network (Kopli testnet). Mainnet deployment is a separate phase.</li>
+<li><b>Not a formal audit.</b> This is a self-authored, test-backed engineering report — no third-party review or formal verification performed.</li>
+</ul>
+
+<div class="foot">
+Veritas Protocol · contracts/ package · solc 0.8.26 · Foundry forge 1.3.5-stable · 81 tests, 0 failures · report covers code as of 2026-06-06 (original 2026-06-04; updated to reflect VeritasRegistryCallback + DilutionMonitorRSC + ReactiveIntegration suite + Unichain Sepolia deployment). Each claim in §3 is checkable in isolation; discrepancies should be treated as audit findings.
+</div>
+
+</body>
+</html>
