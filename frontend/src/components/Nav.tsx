@@ -5,10 +5,17 @@ import {usePathname} from "next/navigation";
 import {ConnectButton} from "@rainbow-me/rainbowkit";
 import {Logo} from "./Logo";
 import {ThemeToggle} from "./theme/ThemeToggle";
+import {RoleSwitcher, useRole} from "./RoleSwitcher";
 import {cn} from "@/lib/utils";
 
-const LINKS = [
-  {href: "/attest", label: "Attest"},
+const CREATOR_LINKS = [
+  {href: "/attest", label: "Verify Art"},
+  {href: "/launch", label: "Launch IP"},
+  {href: "/creator", label: "My IP"},
+  {href: "/dispute", label: "Disputes"},
+];
+
+const LP_LINKS = [
   {href: "/pools", label: "Pools"},
   {href: "/portfolio", label: "Portfolio"},
   {href: "/dispute", label: "Disputes"},
@@ -16,6 +23,9 @@ const LINKS = [
 
 export function Nav() {
   const pathname = usePathname();
+  const {role, setRole} = useRole();
+
+  const links = role === "creator" ? CREATOR_LINKS : LP_LINKS;
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-bg/75 backdrop-blur-xl">
@@ -25,8 +35,11 @@ export function Nav() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {LINKS.map((link) => {
-            const active = pathname === link.href || pathname.startsWith(link.href + "/");
+          {links.map((link) => {
+            const active =
+              pathname === link.href ||
+              pathname.startsWith(link.href + "/") ||
+              (link.href === "/pools" && pathname.startsWith("/pool/"));
             return (
               <Link
                 key={link.href}
@@ -34,13 +47,13 @@ export function Nav() {
                 className={cn(
                   "relative rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-primary/10 text-primary-ink shadow-[inset_0_-2px_0_0_var(--color-primary-ink)/40]"
+                    ? "bg-primary/20 text-primary-ink shadow-[inset_0_-2px_0_0_var(--color-primary-ink)/60]"
                     : "text-muted hover:bg-surface hover:text-ink"
                 )}
               >
                 {link.label}
                 {active && (
-                  <span className="absolute inset-x-2 bottom-0 h-px rounded-full bg-primary-ink opacity-60" />
+                  <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-primary-ink opacity-80" />
                 )}
               </Link>
             );
@@ -48,6 +61,7 @@ export function Nav() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <RoleSwitcher role={role} onChange={setRole} className="hidden sm:flex" />
           <ThemeToggle />
           <ConnectButton
             showBalance={false}

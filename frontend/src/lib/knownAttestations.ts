@@ -7,15 +7,16 @@ import type {Hex} from "viem";
  * error; the listing reads these known IDs directly via getRecord instead.
  */
 export const KNOWN_ATTESTATION_IDS: Hex[] = [
-  "0xf87daf94ea2f9f4f5ffaa5950abd1dd285b9ff75b1b4d72c42409cea7e40d109",
-  "0xeca8861a2533832cfd036228c91a9a8271944ea6c2df9d84f00c75373117a1c3",
-  "0xfe31192bd6a23aee0a3b90e4458e638d3e0a0d8bbf3bfd0afe559635a1f45ce6",
+  // Active ETH-ratio pools (tokenA = attested asset, tokenB = ETH equivalent)
+  "0x40e6a7dc19b5b6314b6084ff13db1475e0ac3c9859fb884b969e2ab861a1a4b9",
+  "0x1105152961f82de0774f53cf7164180584a12d4e7449a3f9bf636d285dac881c",
+  "0x2cd1bffbf7ffca4bf7827d1c9d6722bd02080dd3e852e37bfc63beeb6ca5900e",
+  "0x224e1cadba8dfbee555ead7d55e5a5b76e0e638b07fbda93a4d8c98979d5fecf",
+  // Gated attestations: demonstrate the protocol blocking high-risk content
   "0x627552c29a1413b8d10d928241b3514902f2abfe3d49c838c4093fc9b8c2832a",
   "0x7d07e4ea40a445aed2fafb3ebe7559f9a003f691b8e754a1a3a531b04cc5e0a6",
   "0x0547799fc51ee53cdf6f3e1499c062b6cb1c62634865bf881552c90836a9721c",
   "0x2d17ad992673a898c202f7b624e30646299e2899155ab2b5897b48efa5e35d3f",
-  "0x64e1d0819681e2b7820138e89bceeb333a3b10a9d87286bd857fcb8b9cb0f3e6",
-  "0x59c69769faae70b3491acdae9a7898384982645a3d7887e44776c2dfa474c199",
 ];
 
 /**

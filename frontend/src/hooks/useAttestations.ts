@@ -75,6 +75,7 @@ export function useAttestations(): {pools: Pool[]; isLive: boolean; isLoading: b
         abi: REGISTRY_ABI,
         functionName: "getRecord" as const,
         args: [id] as [`0x${string}`],
+        chainId: 1301,
       })),
     []
   );

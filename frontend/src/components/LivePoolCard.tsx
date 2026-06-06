@@ -26,8 +26,8 @@ export function LivePoolCard({pool, drs}: {pool: LivePool; drs: number}) {
       <dl className="mt-4 flex flex-col gap-3 text-sm">
         <Row label="Dynamic LP fee (now)" value={formatFeeBps(fee)} />
         <Row label="Fee range" value={`${formatFeeBps(pool.baseFeeBps)} to ${formatFeeBps(pool.maxFeeBps)}`} />
-        <RowLink label="Token 0" value={pool.token0} />
-        <RowLink label="Token 1" value={pool.token1} />
+        <RowLink label="Token 0 (Content)" value={pool.token0} />
+        <RowLink label="Token 1 (Quote)" value={pool.token1} />
         <Row
           label="Pool id"
           value={`${pool.poolId.slice(0, 10)}…${pool.poolId.slice(-8)}`}

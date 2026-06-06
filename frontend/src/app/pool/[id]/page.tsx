@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Radio, ExternalLink } from "lucide-react";
+import { ArrowLeft, Radio, ExternalLink, Rocket } from "lucide-react";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { DRSGauge } from "@/components/DRSGauge";
@@ -13,6 +13,7 @@ import { getOnChainPool } from "@/lib/serverRegistry";
 import { getLivePool, getLivePoolTvl } from "@/lib/livePools";
 import { poolImage } from "@/lib/poolMeta";
 import { dynamicFeeBps } from "@/lib/drs";
+import { EXPLORER, V1_HOOK_ADDRESS, LAUNCH_REGISTRY_ADDRESS } from "@/lib/contracts";
 import {
   formatFeeBps,
   formatPct,
@@ -64,7 +65,10 @@ export default async function PoolDetail({
   if (!pool) notFound();
 
   const livePool = getLivePool(id);
-  const tvl = livePool ? await getLivePoolTvl(livePool) : null;
+  // Explicitly annotate the tvl type to match getLivePoolTvl's return shape.
+  const tvl: { tvlTokens: number; tvlUsd: number } | null = livePool
+    ? await getLivePoolTvl(livePool)
+    : null;
 
   return (
     <>
@@ -175,8 +179,65 @@ export default async function PoolDetail({
 
             {/* Right: LP + facts */}
             <div className="flex flex-col gap-6">
+              {/* IP Launch Registry card */}
+              <Card className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Rocket className="size-4 text-primary-ink" strokeWidth={2.25} />
+                  <h2 className="font-display text-base font-semibold text-ink">IP Launch</h2>
+                </div>
+                <p className="text-xs text-muted mb-4">
+                  This content was registered via the DRS-gated IPLaunchRegistry. A DRS below 85%
+                  was required at registration — proving originality before any capital was raised.
+                </p>
+                <dl className="flex flex-col gap-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted">Registry</dt>
+                    <dd>
+                      <a
+                        href={`${EXPLORER}/address/${LAUNCH_REGISTRY_ADDRESS}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-primary-ink hover:underline underline-offset-2"
+                      >
+                        {LAUNCH_REGISTRY_ADDRESS.slice(0, 8)}…
+                        <ExternalLink className="size-3" strokeWidth={2} />
+                      </a>
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted">Bonding curve hook</dt>
+                    <dd>
+                      <a
+                        href={`${EXPLORER}/address/${V1_HOOK_ADDRESS}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-mono text-primary-ink hover:underline underline-offset-2"
+                      >
+                        {V1_HOOK_ADDRESS.slice(0, 8)}…
+                        <ExternalLink className="size-3" strokeWidth={2} />
+                      </a>
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted">Royalty rate</dt>
+                    <dd className="font-semibold text-ink">0.20% per swap</dd>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <dt className="text-muted">LP protection</dt>
+                    <dd className="font-semibold text-ink">DRS-based dynamic fee</dd>
+                  </div>
+                </dl>
+                <Link
+                  href="/launch"
+                  className="mt-4 flex items-center gap-1.5 text-xs font-medium text-primary-ink hover:underline underline-offset-2"
+                >
+                  Launch your own IP
+                  <ExternalLink className="size-3" strokeWidth={2} />
+                </Link>
+              </Card>
+
               {livePool && <LivePoolCard pool={livePool} drs={pool.drs} />}
-              <LpDashboard pool={pool} tvlUsd={tvl?.tvlUsd ?? null} />
+              <LpDashboard pool={pool} />
 
               <Card className="p-6">
                 <h2 className="font-display text-lg font-semibold text-ink">

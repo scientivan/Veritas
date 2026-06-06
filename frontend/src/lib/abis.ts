@@ -151,3 +151,193 @@ export const REGISTRY_ABI = [
 ] as const;
 
 export type RegistryAbi = typeof REGISTRY_ABI;
+
+// ── IPLaunchRegistry (new integrated contract) ────────────────────────────────
+
+export const LAUNCH_REGISTRY_ABI = [
+  {
+    name: "registerIP",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      {name: "token", type: "address"},
+      {name: "royaltyReceiver", type: "address"},
+      {name: "tokenURI", type: "string"},
+      {name: "attestationId", type: "bytes32"},
+    ],
+    outputs: [],
+  },
+  {
+    name: "isVerified",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "token", type: "address"}],
+    outputs: [{name: "", type: "bool"}],
+  },
+  {
+    name: "getLiveDRS",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "token", type: "address"}],
+    outputs: [{name: "", type: "uint16"}],
+  },
+  {
+    name: "getRoyaltyReceiver",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "token", type: "address"}],
+    outputs: [{name: "", type: "address"}],
+  },
+  {
+    name: "registry",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "token", type: "address"}],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          {name: "royaltyReceiver", type: "address"},
+          {name: "tokenURI", type: "string"},
+          {name: "attestationId", type: "bytes32"},
+          {name: "drsAtRegistration", type: "uint16"},
+          {name: "isVerified", type: "bool"},
+        ],
+      },
+    ],
+  },
+  {
+    name: "DRS_GATE",
+    type: "function",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{name: "", type: "uint16"}],
+  },
+  {
+    name: "IPRegistered",
+    type: "event",
+    inputs: [
+      {name: "token", type: "address", indexed: true},
+      {name: "royaltyReceiver", type: "address", indexed: true},
+      {name: "attestationId", type: "bytes32", indexed: true},
+      {name: "drsAtRegistration", type: "uint16", indexed: false},
+      {name: "tokenURI", type: "string", indexed: false},
+    ],
+  },
+] as const;
+
+// ── IPTokenFactory (v1) ────────────────────────────────────────────────────────
+
+export const IP_TOKEN_FACTORY_ABI = [
+  {
+    name: "createToken",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      {name: "name", type: "string"},
+      {name: "symbol", type: "string"},
+      {name: "initialSupply", type: "uint256"},
+    ],
+    outputs: [{name: "tokenAddress", type: "address"}],
+  },
+  {
+    name: "TokenCreated",
+    type: "event",
+    inputs: [
+      {name: "creator", type: "address", indexed: true},
+      {name: "tokenAddress", type: "address", indexed: true},
+      {name: "name", type: "string", indexed: false},
+      {name: "symbol", type: "string", indexed: false},
+    ],
+  },
+] as const;
+
+// ── v1 VeritasHook (bonding curve + royalties) ────────────────────────────────
+
+export const V1_HOOK_ABI = [
+  {
+    name: "initializeLaunchpad",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "key",
+        type: "tuple",
+        components: [
+          {name: "currency0", type: "address"},
+          {name: "currency1", type: "address"},
+          {name: "fee", type: "uint24"},
+          {name: "tickSpacing", type: "int24"},
+          {name: "hooks", type: "address"},
+        ],
+      },
+      {name: "curveAllocation", type: "uint256"},
+      {name: "lpAllocation", type: "uint256"},
+      {name: "hardCap", type: "uint256"},
+      {name: "treasury", type: "address"},
+    ],
+    outputs: [],
+  },
+  {
+    name: "claimRoyalties",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [{name: "token", type: "address"}],
+    outputs: [],
+  },
+  {
+    name: "pendingRoyalties",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      {name: "creator", type: "address"},
+      {name: "token", type: "address"},
+    ],
+    outputs: [{name: "", type: "uint256"}],
+  },
+  {
+    name: "launchpads",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "poolId", type: "bytes32"}],
+    outputs: [
+      {
+        name: "",
+        type: "tuple",
+        components: [
+          {name: "phase", type: "uint8"},
+          {name: "migrating", type: "bool"},
+          {name: "launchTokenIs0", type: "bool"},
+          {name: "curveAllocation", type: "uint256"},
+          {name: "lpAllocation", type: "uint256"},
+          {name: "tokensSold", type: "uint256"},
+          {name: "fundsRaised", type: "uint256"},
+          {name: "hardCap", type: "uint256"},
+          {name: "curveA", type: "uint256"},
+          {name: "curveB", type: "uint256"},
+          {name: "graduationSqrtPriceX96", type: "uint160"},
+          {name: "veritasTreasury", type: "address"},
+        ],
+      },
+    ],
+  },
+  {
+    name: "RoyaltyClaimed",
+    type: "event",
+    inputs: [
+      {name: "creator", type: "address", indexed: true},
+      {name: "token", type: "address", indexed: true},
+      {name: "amount", type: "uint256", indexed: false},
+    ],
+  },
+  {
+    name: "PoolGraduated",
+    type: "event",
+    inputs: [
+      {name: "poolId", type: "bytes32", indexed: true},
+      {name: "fundsRaised", type: "uint256", indexed: false},
+      {name: "tokensSold", type: "uint256", indexed: false},
+    ],
+  },
+] as const;

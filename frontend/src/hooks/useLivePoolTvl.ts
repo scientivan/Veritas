@@ -5,6 +5,8 @@ import {POOL_MANAGER_ADDRESS} from "@/lib/contracts";
 import {getLivePool, type LivePool} from "@/lib/livePools";
 import {ASSUMED_TOKEN_PRICE_USD} from "@/lib/poolMeta";
 
+const UNICHAIN_SEPOLIA_ID = 1301;
+
 /** Minimal ERC20 slice. The pools use Uniswap's TestERC20 whose decimals() reverts,
  * so we never call it and assume the standard 18 (TestERC20 is 18-decimal). */
 const ERC20_ABI = [
@@ -29,8 +31,8 @@ export function useLivePoolTvl(pools: LivePool[]): Map<string, number | null> {
   const contracts = useMemo(
     () =>
       pools.flatMap((p) => [
-        {address: p.token0, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS] as [`0x${string}`]},
-        {address: p.token1, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS] as [`0x${string}`]},
+        {address: p.token0, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS] as [`0x${string}`], chainId: UNICHAIN_SEPOLIA_ID},
+        {address: p.token1, abi: ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS] as [`0x${string}`], chainId: UNICHAIN_SEPOLIA_ID},
       ]),
     [pools]
   );
