@@ -6,6 +6,8 @@ node_modules/
 .models/
 data/*.db
 data/*.db-*
+# but DO ship the seeded corpus so a hosted oracle (Railway) has the D baseline.
+!data/corpus.db
 
 # macOS
 .DS_Store

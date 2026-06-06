@@ -1,4 +1,8 @@
 import {pipeline, type ImageClassificationPipeline, type RawImage} from "@huggingface/transformers";
+import {config} from "../config.js";
+import {calibrateAi} from "./calibration.js";
+
+export {calibrateAi};
 
 /**
  * AI-replicability (A) for images. SMOGY-Ai-images-detector, ONNX export curated
@@ -11,8 +15,14 @@ import {pipeline, type ImageClassificationPipeline, type RawImage} from "@huggin
  * for it here: P(AI-generated) = score(raw label "human"). The mapping is pinned
  * and asserted so a future re-export that fixes the labels is caught loudly.
  *
- * A stays a SOFT signal regardless: it only nudges the DRS via noisy-OR, and the
- * trustless on-chain D floor bounds how far any single signal can move the fee.
+ * OVER-FIRE CALIBRATION (measured 2026-06 over 10 real photos): the detector is
+ * bimodal and overconfident - ~30% of genuine photos were flagged AI at ~1.0
+ * (ids 100, 433, 1025). Confident-wrong outputs cannot be removed by post-hoc
+ * calibration of a single model (the real fix is an ensemble), but temperature
+ * scaling (`calibrateAi`) corrects the overconfidence on borderline cases and
+ * lets operators dial down a single unreliable detector's influence. A stays a
+ * SOFT signal regardless: it only nudges DRS via noisy-OR, and the trustless
+ * on-chain D floor bounds how far any single signal can move the fee.
  */
 
 const MODEL_ID = "onnx-community/SMOGY-Ai-images-detector-ONNX";
@@ -40,8 +50,10 @@ export async function imageAiScore(image: RawImage): Promise<{a: number; source:
     // The export's label set changed - refuse to guess, degrade to neutral.
     return {a: 0, source: `${MODEL_ID} (unexpected labels: ${[...labels].join("/")})`};
   }
-  const ai = results.find((r) => r.label.toLowerCase() === AI_RAW_LABEL);
-  return {a: ai ? ai.score : 0, source: MODEL_ID};
+  const aiRaw = results.find((r) => r.label.toLowerCase() === AI_RAW_LABEL)?.score ?? 0;
+  const realRaw = results.find((r) => r.label.toLowerCase() === REAL_RAW_LABEL)?.score ?? 0;
+  const a = calibrateAi(aiRaw, realRaw);
+  return {a, source: `${MODEL_ID} (T=${config.imageAiTemperature})`};
 }
 
 export async function warmImageAi(image: RawImage): Promise<{label: string; score: number}[]> {

@@ -52,6 +52,15 @@ export const config = {
   simThreshold: num("SIM_THRESHOLD", 0.55),
   /** Hard ceiling: the on-chain oracle rejects a canonical DRS above 9500. */
   maxScore: num("MAX_SCORE", 9500),
+  /**
+   * Temperature for image-A overconfidence calibration. The open SMOGY detector
+   * is bimodal and overconfident (measured: ~30% of real photos flagged AI at
+   * ~1.0). T > 1 softens extreme scores via logit scaling; T = 1 is a no-op.
+   * Default 1.5 is conservative (keeps true AI above the gate while pulling
+   * borderline scores toward neutral). Raise it to further damp false positives
+   * at the cost of true-positive sensitivity.
+   */
+  imageAiTemperature: num("IMAGE_AI_TEMPERATURE", 1.5),
 
   /** Pinata JWT for real IPFS pinning. If unset, the service derives a local CIDv1. */
   pinataJwt: process.env.PINATA_JWT?.trim() || "",

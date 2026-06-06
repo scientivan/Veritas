@@ -137,7 +137,7 @@ contracts/         Foundry: 3 core contracts + Reactive integration, 81 tests
   test/            Oracle, Registry, Hook, Integration, EdgeCases, ReactiveIntegration (81 tests)
   script/          Deploy, DeployCallback, DeployPool, DeployRSC, verify.sh, REACTIVE_RUNBOOK.md
   deployments/     latest.json (Unichain addresses) + pool.json + reactive.json (live RSC) + seeded-dataset.json
-oracle/            Node + TS DRS oracle: DINOv2 + CLIP + SMOGY + RoBERTa, EIP-712 2-of-3 signer (7 tests)
+oracle/            Node + TS DRS oracle: DINOv2 + CLIP + SMOGY + RoBERTa, EIP-712 2-of-3 signer (14 tests)
 frontend/          Next.js 16 + wagmi + RainbowKit; 100% on-chain (no mock): DRS gauge, pools, attest, live dispute + owner-resolve UI
 PRODUCT.md / DESIGN.md   product + visual system (impeccable)
 ```
@@ -148,7 +148,8 @@ Node + TypeScript + Fastify + viem; `@huggingface/transformers` on `onnxruntime-
 
 - **offchainD (duplicate density):** **DINOv2-with-registers** embeddings vs an owned, growing corpus in `sqlite-vec`; `D = 1 - exp(-λ·Σ sim^β)`. Operator 2 re-derives D with an independent **CLIP** embedder and co-signs only when it agrees, so the 2-of-3 quorum has genuine data-layer independence.
 - **A (AI replicability):** image `onnx-community/SMOGY-Ai-images-detector-ONNX`; text `onnx-community/chatgpt-detector-roberta-ONNX`; audio stubbed. A is a soft, co-signed signal (free 2026 image detectors disagree too much to co-vary tightly; the trustless on-chain D floor bounds abuse).
-- **Endpoints:** `/analyze` (preview + quorum), `/attest` (signed payload + IPFS CID), `/confirm` (grows the corpus only after the tx lands). IPFS via Pinata or a deterministic local CIDv1. A `keeper` re-scores and submits `updateAIScore`/`updateOffchainD`. `npm test` → 7 passing.
+- **Endpoints:** `/analyze` (preview + quorum), `/attest` (signed payload + IPFS CID), `/confirm` (grows the corpus only after the tx lands). IPFS via Pinata (real pinning, live) or a deterministic local CIDv1. A `keeper` re-scores and submits `updateAIScore`/`updateOffchainD`. `npm test` → 14 passing.
+- **Image-A over-fire calibration:** the open SMOGY detector is overconfident (measured: ~30% of real photos flagged AI at ~1.0). The A channel applies temperature scaling (`detectors/calibration.ts`, configurable `IMAGE_AI_TEMPERATURE`) to correct overconfidence; confident-wrong outputs are a documented single-model limit, so A stays a soft, capped signal bounded by the trustless on-chain D floor.
 
 ---
 
@@ -187,7 +188,7 @@ npm install
 cp .env.example .env        # set ORACLE_OPERATOR_KEY (+ optional op2/op3, PINATA_JWT)
 npm run seed                # build the DINOv2 + CLIP corpus
 npm run dev                 # http://localhost:8787
-npm test                    # 7 passing
+npm test                    # 14 passing
 npm run smoke               # full on-chain proof: analyze -> 2-of-3 sign -> attest -> read back
 ```
 
