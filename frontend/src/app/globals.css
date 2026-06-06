@@ -1,0 +1,196 @@
+@import "tailwindcss";
+
+/*
+  Veritas Protocol design tokens (see DESIGN.md).
+  Dark by default; a true-light theme via [data-theme="light"].
+  One disciplined brand accent (Reactive blue #004eff); green/amber/red reserved for risk only.
+*/
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: oklch(0.145 0 0);
+  --surface: oklch(0.185 0 0);
+  --surface-2: oklch(0.225 0 0);
+  --border: oklch(0.275 0 0);
+  --border-strong: oklch(0.34 0 0);
+  --ink: oklch(0.975 0 0);
+  --muted: oklch(0.74 0 0);
+  --faint: oklch(0.58 0 0);
+
+  --primary: oklch(0.522 0.267 263.3); /* #004eff */
+  --primary-hover: oklch(0.575 0.247 263);
+  --primary-ink: oklch(0.78 0.13 263); /* legible blue text/links on dark */
+  --on-primary: oklch(0.99 0 0);
+  --ring: oklch(0.7 0.2 263);
+
+  --risk-low: oklch(0.72 0.17 152);
+  --risk-mid: oklch(0.8 0.15 85);
+  --risk-high: oklch(0.62 0.21 25);
+
+  /* Atmosphere strength for the detector-lens canvas (read at runtime). */
+  --wave-alpha: 0.5;
+
+  --radius: 14px;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: oklch(0.995 0 0);
+  --surface: oklch(0.975 0 0);
+  --surface-2: oklch(0.95 0 0);
+  --border: oklch(0.9 0 0);
+  --border-strong: oklch(0.82 0 0);
+  --ink: oklch(0.22 0 0);
+  --muted: oklch(0.45 0 0);
+  --faint: oklch(0.56 0 0);
+
+  --primary: oklch(0.522 0.267 263.3);
+  --primary-hover: oklch(0.47 0.25 263);
+  --primary-ink: oklch(0.5 0.25 263); /* darker blue for text on white (>=7:1) */
+  --on-primary: oklch(0.995 0 0);
+  --ring: oklch(0.55 0.24 263);
+
+  /* Darkened risk hues so colored text/icons read on light tints. */
+  --risk-low: oklch(0.52 0.15 152);
+  --risk-mid: oklch(0.56 0.12 70);
+  --risk-high: oklch(0.55 0.2 25);
+
+  --wave-alpha: 0.7;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-ink: var(--primary-ink);
+  --color-on-primary: var(--on-primary);
+  --color-ring: var(--ring);
+
+  --color-risk-low: var(--risk-low);
+  --color-risk-mid: var(--risk-mid);
+  --color-risk-high: var(--risk-high);
+
+  --font-display: var(--font-display), Georgia, serif;
+  --font-sans: var(--font-sans), system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+
+  --radius-card: var(--radius);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html {
+    background: var(--bg);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-sans), system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background: color-mix(in oklch, var(--primary) 30%, transparent);
+    color: var(--ink);
+  }
+  :focus-visible {
+    outline: none;
+    box-shadow:
+      0 0 0 2px var(--bg),
+      0 0 0 4px var(--ring);
+    border-radius: 6px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-strong) transparent;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 999px;
+    border: 3px solid var(--bg);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display), Georgia, serif;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+  p {
+    text-wrap: pretty;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), Georgia, serif;
+  }
+  .font-mono {
+    font-family: var(--font-mono), ui-monospace, monospace;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .grid-backdrop {
+    background-image: radial-gradient(circle at center, var(--border) 1px, transparent 1px);
+    background-size: 28px 28px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  }
+  .reveal {
+    animation: reveal 0.7s var(--ease-out-expo) both;
+  }
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Smooth color crossfade only while the user toggles theme (avoids load flashes). */
+html.theme-anim,
+html.theme-anim *,
+html.theme-anim *::before,
+html.theme-anim *::after {
+  transition:
+    background-color 0.28s var(--ease-out-quart),
+    border-color 0.28s var(--ease-out-quart),
+    color 0.28s var(--ease-out-quart),
+    fill 0.28s var(--ease-out-quart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
