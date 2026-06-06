@@ -20,11 +20,18 @@ const SORTS: {key: SortKey; label: string}[] = [
   {key: "apy", label: "APY"},
 ];
 
-export function PoolTable() {
+export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("tvl");
-  const {pools, isLive, isLoading} = useAttestations();
+  const {pools: allPools, isLive, isLoading} = useAttestations();
   const tvlByAttestation = useLivePoolTvl(getLivePoolList());
+
+  // For LPs, only pools that actually accept liquidity (a live v4 dynamic-fee pool,
+  // not gated) are providable — bonding-curve launchpad pools lock LP at graduation.
+  const pools = useMemo(
+    () => (lpOnly ? allPools.filter((p) => hasLivePool(p.id) && !p.gated) : allPools),
+    [allPools, lpOnly]
+  );
 
   // Merge real (assumed-price) TVL into the pooled attestations, plus a labelled
   // APY estimate derived from the live DRS-calibrated fee (testnet has no volume).

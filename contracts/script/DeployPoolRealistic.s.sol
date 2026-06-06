@@ -83,7 +83,7 @@ contract DeployPoolRealistic is Script {
         PoolSwapTest swap = new PoolSwapTest(manager);
 
         // Mint 10^6 of each token (no decimals matter for TestERC20 mint).
-        imgToken.mint(vm.addr(pk), 1e24);
+        //
         ethToken.mint(vm.addr(pk), 1e24);
 
         imgToken.approve(address(lp), type(uint256).max);

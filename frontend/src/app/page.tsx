@@ -1,17 +1,30 @@
-import type {ReactNode} from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import {ArrowRight, FileCheck2, Radio, Scale, Boxes, Layers, Globe, ExternalLink} from "lucide-react";
-import {Nav} from "@/components/Nav";
-import {Footer} from "@/components/Footer";
-import {HeroGauge} from "@/components/HeroGauge";
-import {Reveal, CountUp} from "@/components/motion";
-import {FeeCurve} from "@/components/illustrations/FeeCurve";
-import {DuplicateField} from "@/components/illustrations/DuplicateField";
-import {LivingFlow} from "@/components/illustrations/LivingFlow";
-import {buttonClasses} from "@/components/ui/Button";
-import {HOOK_ADDRESS, REGISTRY_ADDRESS, ORACLE_ADDRESS} from "@/lib/contracts";
-import {unichainSepolia} from "@/lib/chains";
-import {shortenAddress, cn} from "@/lib/utils";
+import {
+  ArrowRight,
+  FileCheck2,
+  Radio,
+  Scale,
+  Boxes,
+  Layers,
+  Globe,
+  ExternalLink,
+} from "lucide-react";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { HeroGauge } from "@/components/HeroGauge";
+import { Reveal, CountUp } from "@/components/motion";
+import { FeeCurve } from "@/components/illustrations/FeeCurve";
+import { DuplicateField } from "@/components/illustrations/DuplicateField";
+import { LivingFlow } from "@/components/illustrations/LivingFlow";
+import { buttonClasses } from "@/components/ui/Button";
+import {
+  HOOK_ADDRESS,
+  REGISTRY_ADDRESS,
+  ORACLE_ADDRESS,
+} from "@/lib/contracts";
+import { unichainSepolia } from "@/lib/chains";
+import { shortenAddress, cn } from "@/lib/utils";
 
 export default function Home() {
   return (
@@ -38,7 +51,7 @@ function Hero() {
         <div>
           <div
             className="reveal inline-flex items-center gap-2.5 rounded-full border border-border bg-surface/60 px-3 py-1.5 text-xs text-muted"
-            style={{animationDelay: "0.02s"}}
+            style={{ animationDelay: "0.02s" }}
           >
             <span className="relative flex size-2">
               <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary-ink opacity-60" />
@@ -51,26 +64,27 @@ function Hero() {
 
           <h1
             className="reveal mt-6 font-display text-[clamp(2.4rem,6vw,4.25rem)] font-semibold leading-[1.04] tracking-[-0.03em] text-ink"
-            style={{animationDelay: "0.08s"}}
+            style={{ animationDelay: "0.08s" }}
           >
             Content pools stay empty because the risk is invisible.
           </h1>
 
           <p
             className="reveal mt-6 max-w-xl text-lg leading-relaxed text-muted"
-            style={{animationDelay: "0.14s"}}
+            style={{ animationDelay: "0.14s" }}
           >
-            Veritas reads a content asset&apos;s authenticity and writes it on-chain as a Dilution
-            Risk Score. The score prices an LP&apos;s real downside, dilution by copies and AI
-            replicas, and calibrates a Uniswap v4 pool&apos;s fee automatically.
+            Veritas reads a content asset&apos;s authenticity and writes it
+            on-chain as a Dilution Risk Score. The score prices an LP&apos;s
+            real downside, dilution by copies and AI replicas, and calibrates a
+            Uniswap v4 pool&apos;s fee automatically.
           </p>
 
           <div
             className="reveal mt-9 flex flex-wrap items-center gap-3"
-            style={{animationDelay: "0.2s"}}
+            style={{ animationDelay: "0.2s" }}
           >
-            <Link href="/attest" className={buttonClasses("primary", "lg")}>
-              Attest content
+            <Link href="/launch" className={buttonClasses("primary", "lg")}>
+              Launch your IP
               <ArrowRight className="size-4" strokeWidth={2.25} />
             </Link>
             <Link href="/pools" className={buttonClasses("secondary", "lg")}>
@@ -80,7 +94,7 @@ function Hero() {
 
           <dl
             className="reveal mt-12 flex flex-wrap gap-x-10 gap-y-4 border-t border-border pt-7"
-            style={{animationDelay: "0.26s"}}
+            style={{ animationDelay: "0.26s" }}
           >
             <Stat value="0.30–1.00%" label="DRS-calibrated fee" />
             <Stat value="0.85" label="Risk gate" />
@@ -88,7 +102,10 @@ function Hero() {
           </dl>
         </div>
 
-        <div className="reveal flex justify-center lg:justify-end" style={{animationDelay: "0.16s"}}>
+        <div
+          className="reveal flex justify-center lg:justify-end"
+          style={{ animationDelay: "0.16s" }}
+        >
           <HeroGauge />
         </div>
       </div>
@@ -96,10 +113,20 @@ function Hero() {
   );
 }
 
-function Stat({value, label, mono}: {value: string; label: string; mono?: boolean}) {
+function Stat({
+  value,
+  label,
+  mono,
+}: {
+  value: string;
+  label: string;
+  mono?: boolean;
+}) {
   return (
     <div className="flex flex-col gap-1">
-      <dt className={`text-lg font-semibold text-ink ${mono ? "font-mono text-base" : "tnum"}`}>
+      <dt
+        className={`text-lg font-semibold text-ink ${mono ? "font-mono text-base" : "tnum"}`}
+      >
         {value}
       </dt>
       <dd className="text-xs text-muted">{label}</dd>
@@ -113,22 +140,26 @@ function Problem() {
       <Reveal>
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <h2 className="font-display text-[clamp(1.8rem,3.5vw,2.6rem)] font-semibold leading-tight text-ink">
-            The dominant downside is dilution. It has never been visible on-chain.
+            The dominant downside is dilution. It has never been visible
+            on-chain.
           </h2>
           <div className="flex flex-col gap-5 text-[15px] leading-relaxed text-muted lg:pt-2">
             <p>
-              A content token loses value when the work behind it is copied or regenerated by AI.
-              That risk is real and it is the main reason liquidity providers stay away, yet an AMM
-              sees none of it. The pool looks identical whether the asset is one of a kind or one of
+              A content token loses value when the work behind it is copied or
+              regenerated by AI. That risk is real and it is the main reason
+              liquidity providers stay away, yet an AMM sees none of it. The
+              pool looks identical whether the asset is one of a kind or one of
               ten thousand.
             </p>
             <p className="text-ink">
-              Veritas is the missing risk layer: a score that makes a content asset&apos;s rarity,
-              and its loss of it, legible to the people underwriting the pool.
+              Veritas is the missing risk layer: a score that makes a content
+              asset&apos;s rarity, and its loss of it, legible to the people
+              underwriting the pool.
             </p>
             <p>
-              It is grounded in peer-reviewed work showing rarer NFTs carry lower downside risk
-              (Mekacher et al., <span className="italic">Scientific Reports</span>, 2022).
+              It is grounded in peer-reviewed work showing rarer NFTs carry
+              lower downside risk (Mekacher et al.,{" "}
+              <span className="italic">Scientific Reports</span>, 2022).
             </p>
           </div>
         </div>
@@ -139,14 +170,15 @@ function Problem() {
           <DuplicateField className="mx-auto max-w-3xl" />
           <figcaption className="mt-5 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 text-center text-xs text-muted">
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-[2px] bg-ink" /> one original
+              <span className="inline-block size-2.5 rounded-[2px] bg-ink" />{" "}
+              one original
             </span>
             <span className="text-border-strong">·</span>
             <span>faint cells are copies an AMM cannot tell apart</span>
             <span className="text-border-strong">·</span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="inline-block size-2.5 rounded-[2px] border border-primary-ink" /> a
-              detected near-duplicate
+              <span className="inline-block size-2.5 rounded-[2px] border border-primary-ink" />{" "}
+              a detected near-duplicate
             </span>
           </figcaption>
         </figure>
@@ -189,10 +221,16 @@ function HowItWorks() {
             {steps.map((s) => (
               <div key={s.n} className="flex flex-col gap-4 bg-bg p-7">
                 <div className="flex items-center justify-between">
-                  <s.icon className="size-6 text-primary-ink" strokeWidth={1.75} aria-hidden />
+                  <s.icon
+                    className="size-6 text-primary-ink"
+                    strokeWidth={1.75}
+                    aria-hidden
+                  />
                   <span className="font-mono text-sm text-faint">{s.n}</span>
                 </div>
-                <h3 className="font-display text-xl font-semibold text-ink">{s.title}</h3>
+                <h3 className="font-display text-xl font-semibold text-ink">
+                  {s.title}
+                </h3>
                 <p className="text-sm leading-relaxed text-muted">{s.body}</p>
               </div>
             ))}
@@ -202,8 +240,12 @@ function HowItWorks() {
         <Reveal delay={0.1}>
           <figure className="mt-8 rounded-2xl border border-border bg-bg p-6 sm:p-8">
             <figcaption className="mb-4 flex items-baseline justify-between gap-4">
-              <span className="text-sm text-ink">The fee the hook charges, across the risk range.</span>
-              <span className="font-mono text-xs text-faint">fee = base + (max − base) · DRS</span>
+              <span className="text-sm text-ink">
+                The fee the hook charges, across the risk range.
+              </span>
+              <span className="font-mono text-xs text-faint">
+                fee = base + (max − base) · DRS
+              </span>
             </figcaption>
             <FeeCurve />
           </figure>
@@ -227,14 +269,16 @@ function LivingDRS() {
               A risk score that stays alive on its own.
             </h2>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted">
-              When new content is attested, a Reactive Smart Contract detects it, finds the
-              near-duplicates on-chain, and raises the duplicate-density score for every asset it
-              dilutes. No bot, no off-chain keeper, no manual update. The hook&apos;s fee re-prices
+              When new content is attested, a Reactive Smart Contract detects
+              it, finds the near-duplicates on-chain, and raises the
+              duplicate-density score for every asset it dilutes. No bot, no
+              off-chain keeper, no manual update. The hook&apos;s fee re-prices
               itself as the content ecosystem changes.
             </p>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink">
-              The duplicate-density channel of DRS is fully autonomous and trustless on-chain. The
-              oracle is needed only once, for the AI score, at attestation time.
+              The duplicate-density channel of DRS is fully autonomous and
+              trustless on-chain. The oracle is needed only once, for the AI
+              score, at attestation time.
             </p>
           </Reveal>
           <LivingFlow />
@@ -283,7 +327,9 @@ function Citation({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-baseline gap-2">
-        <span className="font-display text-4xl font-semibold tnum text-ink">{stat}</span>
+        <span className="font-display text-4xl font-semibold tnum text-ink">
+          {stat}
+        </span>
         <span className="text-sm text-muted">{unit}</span>
       </div>
       <p className="text-[15px] leading-relaxed text-ink">{claim}</p>
@@ -314,9 +360,17 @@ function DeployedOnChain() {
   ];
 
   const contracts = [
-    {name: "VeritasHook", role: "v4 dynamic-fee hook", addr: HOOK_ADDRESS},
-    {name: "VeritasRegistry", role: "Attestations · DRS state", addr: REGISTRY_ADDRESS},
-    {name: "VeritasOracle", role: "AI-score quorum (A)", addr: ORACLE_ADDRESS},
+    { name: "VeritasHook", role: "v4 dynamic-fee hook", addr: HOOK_ADDRESS },
+    {
+      name: "VeritasRegistry",
+      role: "Attestations · DRS state",
+      addr: REGISTRY_ADDRESS,
+    },
+    {
+      name: "VeritasOracle",
+      role: "AI-score quorum (A)",
+      addr: ORACLE_ADDRESS,
+    },
   ];
 
   return (
@@ -328,18 +382,25 @@ function DeployedOnChain() {
               Not a diagram. Deployed and verifiable on-chain.
             </h2>
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-muted">
-              Veritas runs on three pieces of public infrastructure, and every claim on this page
-              resolves to a contract you can open in a block explorer.
+              Veritas runs on three pieces of public infrastructure, and every
+              claim on this page resolves to a contract you can open in a block
+              explorer.
             </p>
             <ul className="mt-8 flex flex-col gap-6">
               {stack.map((s) => (
                 <li key={s.name} className="flex gap-4">
                   <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-surface text-primary-ink">
-                    <s.icon className="size-[18px]" strokeWidth={1.75} aria-hidden />
+                    <s.icon
+                      className="size-[18px]"
+                      strokeWidth={1.75}
+                      aria-hidden
+                    />
                   </span>
                   <div>
                     <div className="font-medium text-ink">{s.name}</div>
-                    <p className="mt-1 max-w-md text-sm leading-relaxed text-muted">{s.role}</p>
+                    <p className="mt-1 max-w-md text-sm leading-relaxed text-muted">
+                      {s.role}
+                    </p>
                   </div>
                 </li>
               ))}
@@ -349,8 +410,12 @@ function DeployedOnChain() {
           {/* Deployment manifest: the proof artifact. Each row opens on Uniscan. */}
           <div className="rounded-2xl border border-border bg-surface/40 p-2">
             <div className="flex items-center justify-between px-3 py-3">
-              <span className="text-xs font-medium text-muted">Deployment manifest</span>
-              <span className="font-mono text-xs text-faint">chain 1301 · testnet</span>
+              <span className="text-xs font-medium text-muted">
+                Deployment manifest
+              </span>
+              <span className="font-mono text-xs text-faint">
+                chain 1301 · testnet
+              </span>
             </div>
             <div className="overflow-hidden rounded-xl border border-border bg-bg">
               {contracts.map((c, idx) => (
@@ -362,7 +427,7 @@ function DeployedOnChain() {
                   aria-label={`View ${c.name} on Uniscan`}
                   className={cn(
                     "group flex items-center justify-between gap-4 px-4 py-4 transition-colors hover:bg-surface",
-                    idx > 0 && "border-t border-border"
+                    idx > 0 && "border-t border-border",
                   )}
                 >
                   <div className="min-w-0">
@@ -381,8 +446,9 @@ function DeployedOnChain() {
               ))}
             </div>
             <p className="px-3 py-3 text-xs leading-relaxed text-faint">
-              Addresses verified on-chain. The Reactive duplicate-density monitor is the one piece
-              still being wired; the rest is live today.
+              Addresses verified on-chain. The Reactive duplicate-density
+              monitor is the one piece still being wired; the rest is live
+              today.
             </p>
           </div>
         </div>
@@ -399,8 +465,8 @@ function FinalCta() {
           Make a content pool investable.
         </h2>
         <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted">
-          Attest a piece of content, watch its Dilution Risk Score compute, and open a pool whose
-          fee already reflects the risk.
+          Verify a piece of content, watch its Dilution Risk Score compute, and
+          tokenize it into a pool whose fee already reflects the risk.
         </p>
         <div className="mt-9 flex justify-center">
           <Link href="/attest" className={buttonClasses("primary", "lg")}>

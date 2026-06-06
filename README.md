@@ -19,6 +19,12 @@ All contracts are deployed and **source-verified on Uniscan** (Etherscan v2) and
 | VeritasRegistryCallback | Unichain Sepolia | `0xa516891eE1a4b0c4a149D1241e2EE00702B7332a` | wired as `dilutionUpdater` |
 | DilutionMonitorRSC | Reactive Lasna (5318007) | `0xB44F024468dc78572D1Ad7b3f5Ce3A51408E5C5d` | subscribes to `NewAttestation` |
 | PoolManager (Uniswap v4) | Unichain Sepolia | `0x00B036B58a818B1BC34d502D3fE730Db729e62AC` | official |
+| StateView (Uniswap v4) | Unichain Sepolia | `0xc199f1072a74d4e905aba1a84d9a45e2546b6222` | pool-state reads (PoolManager.getSlot0 reverts here) |
+| IPLaunchRegistry | Unichain Sepolia | `0x9dF98317b07B2964c25b45a934a0f9DAAB50aea2` | DRS-gated IP registry (v2 attestation -> v1 launch bridge) |
+| IPTokenFactory (v1) | Unichain Sepolia | `0xFB112b3AdF5d982A1Da4bEB6CD7370A64B98638c` | deploys creator IP ERC-20s |
+| VeritasHook (v1, bonding curve) | Unichain Sepolia | `0xcecf19e7722e3b38b399785e00e13f7c3dcd20cc` | fair-launch curve + graduation + royalties (mined hook bits) |
+| VeritasRegistry (v1, IP registry) | Unichain Sepolia | `0x17c5e35D11D6Af09869aD48e8Da54F5a07780fC8` | permissionless IP registry the v1 hook reads (`registerIP`) |
+| Mock USDC (raise token) | Unichain Sepolia | `0xD977AD033490EF42Db9E3B8Fc294425369b5A15a` | the token launchpad buyers pay with |
 
 - **Two real v4 pools** opened through the hook (register → initialize → liquidity → swap): poolId `0xf937…ff0e` (DRS 0) and `0x0cb6…0316` (DRS 0.68, higher dynamic fee).
 - **2-of-3 oracle:** op1 DINOv2, op2 **CLIP** (independent embedder), op3 DINOv2-redundant; a single signature is rejected on-chain.

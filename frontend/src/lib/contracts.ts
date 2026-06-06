@@ -10,24 +10,44 @@ export const REGISTRY_CALLBACK_ADDRESS: Address = "0xa516891eE1a4b0c4a149D1241e2
 export const POOL_MANAGER_ADDRESS: Address = "0x00B036B58a818B1BC34d502D3fE730Db729e62AC";
 /** Persistent PoolModifyLiquidityTest router (real add/remove liquidity from the UI). */
 export const LIQUIDITY_ROUTER_ADDRESS: Address = "0x7FaeB8F738DA1248D63728D90A16913f32651bbe";
+/**
+ * v4-periphery StateView. PoolManager.getSlot0/getLiquidity REVERT on Unichain
+ * Sepolia's v4-core deployment, so all pool-state reads must go through StateView.
+ */
+export const STATE_VIEW_ADDRESS: Address = "0xc199f1072a74d4e905aba1a84d9a45e2546b6222";
 
 // ── v1: IP tokenization + bonding curve launchpad ────────────────────────────
 
-/** v1 VeritasRegistry: permissionless IP token registry (checked by v1 VeritasHook). */
-export const V1_REGISTRY_ADDRESS: Address = "0xB44F024468dc78572D1Ad7b3f5Ce3A51408E5C5d";
-/** v1 VeritasHook: bonding-curve launchpad + CLMM graduation + perpetual royalties. */
-export const V1_HOOK_ADDRESS: Address = "0x2a25c8F17AF1Ac048CeF0d91815e310834d96044";
+/**
+ * v1 VeritasRegistry: permissionless IP token registry (checked by v1 VeritasHook).
+ * MUST be the registry that the chosen V1_HOOK_ADDRESS reads (`hook.registry()`) AND
+ * that actually exposes `registerIP`. Verified on-chain 2026-06-07: 0xB44F… has the
+ * `registry` getter but NO `registerIP`, so it is unusable; 0x17c5e35D… is the
+ * functional one paired with hook 0xcecf19….
+ */
+export const V1_REGISTRY_ADDRESS: Address = "0x17c5e35D11D6Af09869aD48e8Da54F5a07780fC8";
+/**
+ * v1 VeritasHook: bonding-curve launchpad + CLMM graduation + perpetual royalties.
+ * MUST be the deploy that (a) has `initializeLaunchpad`/`launchpads`, (b) has valid v4
+ * permission bits (address & 0x3FFF == 0x20CC), and (c) whose `registry()` is a registry
+ * that actually exposes `registerIP` (= V1_REGISTRY_ADDRESS). Verified on-chain
+ * 2026-06-07: 0xcecf19…20cc -> registry 0x17c5e35D… (which has registerIP). The
+ * 0x3f0c62… deploy reads 0xB44F… which has no registerIP, so it is unusable.
+ */
+export const V1_HOOK_ADDRESS: Address = "0xcecf19e7722e3b38b399785e00e13f7c3dcd20cc";
 /** v1 IPTokenFactory: deploys ERC-20 IP tokens on behalf of creators. */
 export const IP_TOKEN_FACTORY_ADDRESS: Address = "0xFB112b3AdF5d982A1Da4bEB6CD7370A64B98638c";
 /** v1 PoolSwapTest router used for bonding-curve buys. */
 export const V1_SWAP_ROUTER_ADDRESS: Address = "0xB50cEEC85d58f3925eee5Ea71790577f5a0df831";
+/** Mock USDC (18-decimals) — the raise token launchpad buyers pay with. */
+export const RAISE_TOKEN_ADDRESS: Address = "0xD977AD033490EF42Db9E3B8Fc294425369b5A15a";
+export const RAISE_TOKEN_SYMBOL = "USDC";
 
 /**
  * IPLaunchRegistry: DRS-gated IP registry bridging v2 attestation with v1 IP launch.
- * Deploy with: forge script script/DeployIPLaunch.s.sol --rpc-url $RPC_URL --broadcast
- * Update this address after deployment.
+ * Deployed on Unichain Sepolia 2026-06-07 (forge script DeployIPLaunch.s.sol).
  */
-export const LAUNCH_REGISTRY_ADDRESS: Address = "0x0000000000000000000000000000000000000000";
+export const LAUNCH_REGISTRY_ADDRESS: Address = "0x9dF98317b07B2964c25b45a934a0f9DAAB50aea2";
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 

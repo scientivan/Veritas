@@ -25,8 +25,8 @@ export function Footer() {
 
         <nav className="flex flex-col gap-2.5 text-sm text-muted" aria-label="Product">
           <span className="text-xs font-medium uppercase tracking-wide text-faint">Product</span>
-          <Link href="/attest" className="transition-colors hover:text-ink">
-            Attest content
+          <Link href="/launch" className="transition-colors hover:text-ink">
+            Launch your IP
           </Link>
           <Link href="/pools" className="transition-colors hover:text-ink">
             Explore pools

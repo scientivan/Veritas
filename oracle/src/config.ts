@@ -69,7 +69,7 @@ export const config = {
    * on-chain D (duplication) channel. A unique photo wrongly flagged tops out at
    * this value instead of ~1.0. Set to 1 to disable the cap.
    */
-  imageAiMaxContribution: num("IMAGE_AI_MAX_CONTRIBUTION", 0.5),
+  imageAiMaxContribution: num("IMAGE_AI_MAX_CONTRIBUTION", 0.3),
 
   /** Pinata JWT for real IPFS pinning. If unset, the service derives a local CIDv1. */
   pinataJwt: process.env.PINATA_JWT?.trim() || "",

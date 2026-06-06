@@ -7,8 +7,8 @@ import {CreatorDashboard} from "@/components/CreatorDashboard";
 import {buttonClasses} from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "My IP · Veritas Protocol",
-  description: "Manage your registered IP tokens, track royalties, and monitor pool status.",
+  title: "Creator Studio · Veritas Protocol",
+  description: "Your attested works, launched IP tokens, royalties, and bonding curve status.",
 };
 
 export default function CreatorPage() {
@@ -20,11 +20,11 @@ export default function CreatorPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h1 className="font-display text-4xl font-semibold tracking-tight text-ink">
-                My IP
+                Creator Studio
               </h1>
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
-                Your registered IP tokens, live DRS scores, bonding curve progress, and unclaimed
-                royalties — all in one place.
+                Your attested works, launched IP tokens, live DRS scores, bonding curve progress,
+                and unclaimed royalties.
               </p>
             </div>
             <Link href="/launch" className={buttonClasses("primary", "md")}>

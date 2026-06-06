@@ -245,8 +245,9 @@ export const IP_TOKEN_FACTORY_ABI = [
     name: "TokenCreated",
     type: "event",
     inputs: [
+      // Matches MockIPToken.sol: only `creator` is indexed.
       {name: "creator", type: "address", indexed: true},
-      {name: "tokenAddress", type: "address", indexed: true},
+      {name: "tokenAddress", type: "address", indexed: false},
       {name: "name", type: "string", indexed: false},
       {name: "symbol", type: "string", indexed: false},
     ],
@@ -297,29 +298,25 @@ export const V1_HOOK_ABI = [
     outputs: [{name: "", type: "uint256"}],
   },
   {
+    // Public mapping getter: returns the struct members as 12 FLAT values
+    // (not a single tuple). Matches the deployed bytecode.
     name: "launchpads",
     type: "function",
     stateMutability: "view",
     inputs: [{name: "poolId", type: "bytes32"}],
     outputs: [
-      {
-        name: "",
-        type: "tuple",
-        components: [
-          {name: "phase", type: "uint8"},
-          {name: "migrating", type: "bool"},
-          {name: "launchTokenIs0", type: "bool"},
-          {name: "curveAllocation", type: "uint256"},
-          {name: "lpAllocation", type: "uint256"},
-          {name: "tokensSold", type: "uint256"},
-          {name: "fundsRaised", type: "uint256"},
-          {name: "hardCap", type: "uint256"},
-          {name: "curveA", type: "uint256"},
-          {name: "curveB", type: "uint256"},
-          {name: "graduationSqrtPriceX96", type: "uint160"},
-          {name: "veritasTreasury", type: "address"},
-        ],
-      },
+      {name: "phase", type: "uint8"},
+      {name: "migrating", type: "bool"},
+      {name: "launchTokenIs0", type: "bool"},
+      {name: "curveAllocation", type: "uint256"},
+      {name: "lpAllocation", type: "uint256"},
+      {name: "tokensSold", type: "uint256"},
+      {name: "fundsRaised", type: "uint256"},
+      {name: "hardCap", type: "uint256"},
+      {name: "curveA", type: "uint256"},
+      {name: "curveB", type: "uint256"},
+      {name: "graduationSqrtPriceX96", type: "uint160"},
+      {name: "veritasTreasury", type: "address"},
     ],
   },
   {
@@ -339,5 +336,71 @@ export const V1_HOOK_ABI = [
       {name: "fundsRaised", type: "uint256", indexed: false},
       {name: "tokensSold", type: "uint256", indexed: false},
     ],
+  },
+] as const;
+
+// ── v1 VeritasRegistry (permissionless IP token registry the v1 hook reads) ────
+
+export const V1_REGISTRY_ABI = [
+  {
+    name: "registerIP",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      {name: "token", type: "address"},
+      {name: "royaltyReceiver", type: "address"},
+      {name: "tokenURI", type: "string"},
+    ],
+    outputs: [],
+  },
+  {
+    name: "registry",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "token", type: "address"}],
+    outputs: [
+      {name: "royaltyReceiver", type: "address"},
+      {name: "tokenURI", type: "string"},
+      {name: "isVerified", type: "bool"},
+    ],
+  },
+] as const;
+
+// ── Uniswap v4 PoolManager: initialize (open a pool) ───────────────────────────
+
+export const POOL_MANAGER_INIT_ABI = [
+  {
+    name: "initialize",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      {
+        name: "key",
+        type: "tuple",
+        components: [
+          {name: "currency0", type: "address"},
+          {name: "currency1", type: "address"},
+          {name: "fee", type: "uint24"},
+          {name: "tickSpacing", type: "int24"},
+          {name: "hooks", type: "address"},
+        ],
+      },
+      {name: "sqrtPriceX96", type: "uint160"},
+    ],
+    outputs: [{name: "tick", type: "int24"}],
+  },
+] as const;
+
+// Minimal ERC-20 approve (for launchpad allocation transfer-in).
+export const ERC20_APPROVE_ABI = [
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      {name: "spender", type: "address"},
+      {name: "amount", type: "uint256"},
+    ],
+    outputs: [{name: "", type: "bool"}],
   },
 ] as const;

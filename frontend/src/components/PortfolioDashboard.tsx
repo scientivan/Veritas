@@ -4,11 +4,13 @@ import {useMemo, useState} from "react";
 import Link from "next/link";
 import {useAccount} from "wagmi";
 import {ConnectButton} from "@rainbow-me/rainbowkit";
-import {ArrowUpRight, AlertTriangle, ShieldCheck} from "lucide-react";
+import {ArrowUpRight, Wallet} from "lucide-react";
+import {formatEther} from "viem";
 import {useAttestations} from "@/hooks/useAttestations";
 import {useLivePoolTvl} from "@/hooks/useLivePoolTvl";
+import {useLpPositions} from "@/hooks/useLpPositions";
 import {getLivePoolList, hasLivePool} from "@/lib/livePools";
-import {dynamicFeeBps, DRS_GATE, BASE_FEE_BPS, MAX_FEE_BPS} from "@/lib/drs";
+import {dynamicFeeBps, DRS_GATE} from "@/lib/drs";
 import {ASSUMED_ANNUAL_TURNOVER} from "@/lib/poolMeta";
 import {RiskPill} from "./RiskPill";
 import {ILSimulator} from "./ILSimulator";
@@ -20,251 +22,145 @@ function poolApy(pool: Pool): number | null {
   return (dynamicFeeBps(pool.drs, pool.baseFeeBps, pool.maxFeeBps) / 10000) * ASSUMED_ANNUAL_TURNOVER;
 }
 
-function gateDistance(pool: Pool): number {
-  return Math.max(0, DRS_GATE - pool.drs);
-}
-
-/* ── Gate Proximity Card ──────────────────────────────────────────────── */
-function GateProximityCard({pool}: {pool: Pool}) {
-  const dist = gateDistance(pool);
-  const pct = Math.min(1, pool.drs / DRS_GATE);
-  const isClose = pool.drs >= DRS_GATE * 0.7;
-  const isGated = pool.gated;
-
-  return (
-    <Link
-      href={`/pool/${pool.id}`}
-      className="group flex flex-col gap-3 rounded-xl border border-border bg-surface/40 p-4 transition-colors hover:bg-surface/80"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-ink">{pool.title}</p>
-          <p className="mt-0.5 text-xs text-muted">DRS: {formatPct(pool.drs)}</p>
-        </div>
-        {isGated ? (
-          <span className="shrink-0 rounded-full bg-risk-high/15 px-2 py-0.5 text-xs font-medium text-risk-high">
-            Gated
-          </span>
-        ) : isClose ? (
-          <AlertTriangle className="size-4 shrink-0 text-risk-mid" strokeWidth={2.25} aria-hidden />
-        ) : (
-          <ShieldCheck className="size-4 shrink-0 text-risk-low" strokeWidth={2.25} aria-hidden />
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <div>
-        <div className="mb-1 flex justify-between text-[10px] text-faint">
-          <span>0%</span>
-          <span>Gate 85%</span>
-        </div>
-        <div className="relative h-2 overflow-hidden rounded-full bg-surface">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{
-              width: `${(pool.drs / DRS_GATE) * 100}%`,
-              background: isGated
-                ? "var(--risk-high)"
-                : isClose
-                ? "var(--risk-mid)"
-                : "var(--risk-low)",
-            }}
-          />
-          {/* Gate marker */}
-          <div
-            className="absolute top-0 h-full w-px bg-risk-high/60"
-            style={{left: "100%"}}
-          />
-        </div>
-      </div>
-
-      {!isGated && (
-        <p className="text-xs text-faint">
-          {(dist * 100).toFixed(0)} ppts from gate
-          {isClose && " — consider reducing exposure"}
-        </p>
-      )}
-    </Link>
-  );
-}
-
-/* ── Comparison Table ─────────────────────────────────────────────────── */
-function PoolCompareTable({pools, tvlMap}: {pools: Pool[]; tvlMap: Map<string, number | null>}) {
-  const [sortKey, setSortKey] = useState<"drs" | "apy" | "gate">("gate");
-
-  const sorted = useMemo(() => {
-    return [...pools]
-      .filter((p) => hasLivePool(p.id))
-      .sort((a, b) => {
-        if (sortKey === "drs") return a.drs - b.drs;
-        if (sortKey === "apy") return (poolApy(b) ?? -1) - (poolApy(a) ?? -1);
-        return gateDistance(b) - gateDistance(a); // "safest" first
-      });
-  }, [pools, sortKey]);
-
-  return (
-    <div>
-      <div className="mb-3 flex items-center gap-2">
-        <span className="text-xs text-faint">Sort:</span>
-        {(["gate", "drs", "apy"] as const).map((k) => (
-          <button
-            key={k}
-            onClick={() => setSortKey(k)}
-            className={cn(
-              "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
-              sortKey === k
-                ? "bg-primary/15 text-primary-ink"
-                : "text-muted hover:bg-surface hover:text-ink"
-            )}
-          >
-            {k === "gate" ? "Safest first" : k === "drs" ? "DRS" : "APY est."}
-          </button>
-        ))}
-      </div>
-
-      <div className="overflow-hidden rounded-xl border border-border">
-        <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr] gap-3 border-b border-border bg-surface/40 px-4 py-2 text-[11px] uppercase tracking-wider text-faint md:grid">
-          <span>Pool</span>
-          <span>DRS</span>
-          <span className="text-right">Dynamic fee</span>
-          <span className="text-right">APY (est.)</span>
-          <span className="text-right">Gate distance</span>
-          <span />
-        </div>
-        <div className="divide-y divide-border">
-          {sorted.map((p) => {
-            const apy = poolApy(p);
-            const dist = gateDistance(p);
-            const tvl = tvlMap.get(p.id.toLowerCase());
-            return (
-              <div
-                key={p.id}
-                className="grid grid-cols-2 gap-x-3 gap-y-2 px-4 py-3 md:grid-cols-[2fr_1fr_1fr_1fr_1fr_0.5fr] md:items-center"
-              >
-                <div className="col-span-2 md:col-span-1">
-                  <p className="truncate text-sm font-medium text-ink">{p.title}</p>
-                  {tvl !== undefined && tvl !== null && (
-                    <p className="font-mono text-xs text-faint">TVL {formatUsd(tvl)} (sim.)</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <RiskPill drs={p.drs} gated={p.gated} size="sm" />
-                  <span className="font-mono text-xs tnum text-muted">{formatPct(p.drs)}</span>
-                </div>
-                <p className="text-right font-mono text-sm tnum text-ink md:block">
-                  {p.gated ? (
-                    <span className="text-risk-high">Gated</span>
-                  ) : (
-                    formatFeeBps(dynamicFeeBps(p.drs, p.baseFeeBps, p.maxFeeBps))
-                  )}
-                </p>
-                <p className="text-right font-mono text-sm tnum text-ink">
-                  {apy !== null ? `${apy.toFixed(1)}%` : "-"}
-                </p>
-                <div className="flex flex-col items-end gap-0.5">
-                  <span
-                    className={cn(
-                      "font-mono text-sm tnum",
-                      p.gated ? "text-risk-high" : dist < 0.1 ? "text-risk-mid" : "text-risk-low"
-                    )}
-                  >
-                    {p.gated ? "0%" : `${(dist * 100).toFixed(0)}%`}
-                  </span>
-                  <span className="text-[10px] text-faint">from gate</span>
-                </div>
-                <Link
-                  href={`/pool/${p.id}`}
-                  className="flex items-center justify-end gap-1 text-xs text-primary-ink hover:underline"
-                >
-                  View
-                  <ArrowUpRight className="size-3" strokeWidth={2.25} aria-hidden />
-                </Link>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Main dashboard ───────────────────────────────────────────────────── */
 export function PortfolioDashboard() {
-  const {isConnected} = useAccount();
+  const {address, isConnected} = useAccount();
   const {pools} = useAttestations();
+  const {positions} = useLpPositions(address);
   const tvlMap = useLivePoolTvl(getLivePoolList());
 
-  // Pick the pool with the lowest DRS (safest) for the IL simulator default.
-  const safestPool = useMemo(
-    () => pools.filter((p) => !p.gated && hasLivePool(p.id)).sort((a, b) => a.drs - b.drs)[0],
+  // Join locally-tracked positions with live on-chain pool data.
+  const myPositions = useMemo(() => {
+    return positions
+      .map((pos) => {
+        const pool = pools.find((p) => p.id.toLowerCase() === pos.attestationId.toLowerCase());
+        if (!pool) return null;
+        return {pool, netToken0: Number(formatEther(BigInt(pos.netToken0)))};
+      })
+      .filter((x): x is {pool: Pool; netToken0: number} => x !== null);
+  }, [positions, pools]);
+
+  const livePools = useMemo(
+    () => pools.filter((p) => hasLivePool(p.id) && !p.gated),
     [pools]
   );
 
+  // IL simulator targets your positions if you have any, else all providable pools.
+  const simChoices = myPositions.length > 0 ? myPositions.map((m) => m.pool) : livePools;
   const [simPool, setSimPool] = useState<string | null>(null);
   const activeDrs = useMemo(() => {
-    const id = simPool ?? safestPool?.id;
+    const id = simPool ?? simChoices[0]?.id;
     return pools.find((p) => p.id === id)?.drs ?? 0;
-  }, [simPool, safestPool, pools]);
-
-  const livePools = pools.filter((p) => hasLivePool(p.id));
+  }, [simPool, simChoices, pools]);
 
   return (
     <div className="flex flex-col gap-12">
-      {/* Section 1: Pool comparison */}
+      {/* Section 1 — My positions */}
       <section>
         <div className="mb-4">
           <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">
-            Pool comparison
+            My positions
           </h2>
           <p className="mt-1 text-sm text-muted">
-            All live Veritas v4 pools, sorted by safety margin. Higher gate distance = more runway
-            before the hook blocks new swaps.
+            Pools you&apos;ve provided liquidity to, with each one&apos;s live Dilution Risk Score and
+            DRS-calibrated fee. The fee rises automatically as dilution risk climbs — that&apos;s your
+            built-in IL compensation.
           </p>
         </div>
-        <PoolCompareTable pools={pools} tvlMap={tvlMap} />
+
+        {!isConnected ? (
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-10 text-center">
+            <p className="text-muted">Connect your wallet to see your liquidity positions.</p>
+            <ConnectButton />
+          </div>
+        ) : myPositions.length === 0 ? (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
+            <Wallet className="size-8 text-muted" strokeWidth={1.5} />
+            <p className="font-display text-lg font-semibold text-ink">No positions yet</p>
+            <p className="max-w-sm text-sm text-muted">
+              Provide liquidity to a pool in{" "}
+              <Link href="/pools" className="text-primary-ink hover:underline">
+                Available Pools
+              </Link>{" "}
+              and it will show up here with its live value and fee.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-xl border border-border">
+            <div className="hidden grid-cols-[2fr_1fr_1fr_1fr_0.6fr] gap-3 border-b border-border bg-surface/40 px-4 py-2.5 text-[11px] uppercase tracking-wider text-faint md:grid">
+              <span>Pool</span>
+              <span>Dilution risk</span>
+              <span className="text-right">Your liquidity</span>
+              <span className="text-right">Dynamic fee</span>
+              <span />
+            </div>
+            <div className="divide-y divide-border">
+              {myPositions.map(({pool, netToken0}) => {
+                const tvl = tvlMap.get(pool.id.toLowerCase());
+                const apy = poolApy(pool);
+                return (
+                  <div
+                    key={pool.id}
+                    className="grid grid-cols-2 gap-x-3 gap-y-2 px-4 py-3.5 md:grid-cols-[2fr_1fr_1fr_1fr_0.6fr] md:items-center"
+                  >
+                    <div className="col-span-2 md:col-span-1">
+                      <p className="truncate text-sm font-medium text-ink">{pool.title}</p>
+                      {tvl != null && (
+                        <p className="font-mono text-xs text-faint">Pool TVL {formatUsd(tvl)} (sim.)</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RiskPill drs={pool.drs} gated={pool.gated} size="sm" />
+                      <span className="font-mono text-xs tnum text-muted">{formatPct(pool.drs)}</span>
+                    </div>
+                    <div className="flex flex-col md:items-end">
+                      <span className="font-mono text-sm tnum text-ink">{netToken0.toFixed(2)}</span>
+                      <span className="text-[10px] text-faint">token0 units</span>
+                    </div>
+                    <div className="flex flex-col md:items-end">
+                      <span className="font-mono text-sm tnum text-ink">
+                        {formatFeeBps(dynamicFeeBps(pool.drs, pool.baseFeeBps, pool.maxFeeBps))}
+                      </span>
+                      {apy !== null && <span className="text-[10px] text-faint">~{apy.toFixed(1)}% APY est.</span>}
+                    </div>
+                    <Link
+                      href={`/pool/${pool.id}`}
+                      className="flex items-center justify-end gap-1 text-xs text-primary-ink hover:underline"
+                    >
+                      Manage
+                      <ArrowUpRight className="size-3" strokeWidth={2.25} aria-hidden />
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
-      {/* Section 2: Gate proximity alerts */}
-      <section>
-        <div className="mb-4">
-          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">
-            Gate proximity
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            How close each pool&apos;s DRS is to the protocol gate threshold (85%). When gated, no
-            new swaps are accepted.
-          </p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {livePools.map((p) => (
-            <GateProximityCard key={p.id} pool={p} />
-          ))}
-        </div>
-      </section>
-
-      {/* Section 3: IL Protection Simulator */}
+      {/* Section 2 — IL protection simulator */}
       <section>
         <div className="mb-4">
           <h2 className="font-display text-2xl font-semibold tracking-tight text-ink">
             IL protection simulator
           </h2>
           <p className="mt-1 text-sm text-muted">
-            Estimate whether the dynamic fee compensates for impermanent loss as DRS rises. The
-            protocol&apos;s key thesis: higher dilution risk = higher fee that protects LP returns.
+            Estimate whether the dynamic fee compensates for impermanent loss as DRS rises — the
+            protocol&apos;s core thesis: higher dilution risk ⇒ higher fee that protects LP returns.
           </p>
         </div>
 
-        {/* Pool selector */}
-        {livePools.length > 0 && (
+        {simChoices.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2">
-            <span className="self-center text-xs text-faint">Simulating:</span>
-            {livePools.map((p) => (
+            <span className="self-center text-xs text-faint">
+              {myPositions.length > 0 ? "Your pools:" : "Simulating:"}
+            </span>
+            {simChoices.map((p) => (
               <button
                 key={p.id}
                 onClick={() => setSimPool(p.id)}
                 className={cn(
                   "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                  (simPool === p.id || (!simPool && p.id === safestPool?.id))
+                  simPool === p.id || (!simPool && p.id === simChoices[0]?.id)
                     ? "border-primary-ink/30 bg-primary/10 text-primary-ink"
                     : "border-border text-muted hover:border-border-strong hover:text-ink"
                 )}
@@ -280,24 +176,11 @@ export function PortfolioDashboard() {
         </div>
 
         <p className="mt-3 text-xs text-faint">
-          Model assumptions: fee APY = dynamic fee rate × {ASSUMED_ANNUAL_TURNOVER}× annual
-          turnover (testnet, no real volume). IL uses the x*y=k constant-product formula.
-          Price drop is assumed linear with DRS. Adjust the slider to explore different scenarios.
+          Model: fee APY = dynamic fee × {ASSUMED_ANNUAL_TURNOVER}× annual turnover (testnet, no real
+          volume); IL uses the x·y=k constant-product formula; price drop assumed linear with DRS. The
+          gate sits at {formatPct(DRS_GATE)}.
         </p>
       </section>
-
-      {/* Wallet prompt */}
-      {!isConnected && (
-        <div className="rounded-xl border border-border bg-surface/40 p-6 text-center">
-          <p className="text-sm text-muted">
-            Connect your wallet to see which pools you&apos;ve interacted with and track your
-            positions.
-          </p>
-          <div className="mt-4 inline-flex [&_button]:text-sm">
-            <ConnectButton />
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -7,25 +7,14 @@ import {Logo} from "./Logo";
 import {ThemeToggle} from "./theme/ThemeToggle";
 import {RoleSwitcher, useRole} from "./RoleSwitcher";
 import {cn} from "@/lib/utils";
+import {LINKS_BY_ROLE, LP_LINKS} from "@/lib/navigation";
 
-const CREATOR_LINKS = [
-  {href: "/attest", label: "Verify Art"},
-  {href: "/launch", label: "Launch IP"},
-  {href: "/creator", label: "My IP"},
-  {href: "/dispute", label: "Disputes"},
-];
-
-const LP_LINKS = [
-  {href: "/pools", label: "Pools"},
-  {href: "/portfolio", label: "Portfolio"},
-  {href: "/dispute", label: "Disputes"},
-];
 
 export function Nav() {
   const pathname = usePathname();
   const {role, setRole} = useRole();
 
-  const links = role === "creator" ? CREATOR_LINKS : LP_LINKS;
+  const links = LINKS_BY_ROLE[role] ?? LP_LINKS;
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-bg/75 backdrop-blur-xl">
@@ -36,9 +25,12 @@ export function Nav() {
 
         <nav className="hidden items-center gap-1 md:flex">
           {links.map((link) => {
+            // "/market" has sibling sub-routes (/market/portfolio, /market/history),
+            // so it must match exactly rather than as a prefix of its siblings.
+            const exactOnly = link.href === "/market";
             const active =
               pathname === link.href ||
-              pathname.startsWith(link.href + "/") ||
+              (!exactOnly && pathname.startsWith(link.href + "/")) ||
               (link.href === "/pools" && pathname.startsWith("/pool/"));
             return (
               <Link

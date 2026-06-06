@@ -4,27 +4,13 @@ import {useReadContract} from "wagmi";
 import type {Hex} from "viem";
 import {V1_HOOK_ABI} from "@/lib/abis";
 import {V1_HOOK_ADDRESS} from "@/lib/contracts";
+import {decodeLaunchpads} from "@/lib/launchpad";
 import type {LaunchpadPhase, LaunchpadInfo} from "@/lib/types";
 
 const PHASE_MAP: Record<number, LaunchpadPhase> = {
   0: "INACTIVE",
   1: "LAUNCHPAD",
   2: "GRADUATED",
-};
-
-type LaunchpadResult = {
-  phase: number;
-  migrating: boolean;
-  launchTokenIs0: boolean;
-  curveAllocation: bigint;
-  lpAllocation: bigint;
-  tokensSold: bigint;
-  fundsRaised: bigint;
-  hardCap: bigint;
-  curveA: bigint;
-  curveB: bigint;
-  graduationSqrtPriceX96: bigint;
-  veritasTreasury: `0x${string}`;
 };
 
 /**
@@ -44,11 +30,11 @@ export function useBondingCurve(
     query: {enabled: !!poolId},
   });
 
-  if (!data || !poolId || !ipToken || !raiseToken) {
+  const result = decodeLaunchpads(data as readonly unknown[] | undefined);
+
+  if (!result || !poolId || !ipToken || !raiseToken) {
     return {launchpad: null, isLoading};
   }
-
-  const result = data as LaunchpadResult;
 
   return {
     launchpad: {

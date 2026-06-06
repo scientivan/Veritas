@@ -9,8 +9,9 @@ import {formatEther, parseEther} from "viem";
 import type {Pool} from "@/lib/types";
 import {Button} from "./ui/Button";
 import {dynamicFeeBps} from "@/lib/drs";
+import {useLpPositions} from "@/hooks/useLpPositions";
 import {getLivePool} from "@/lib/livePools";
-import {LIQUIDITY_ROUTER_ADDRESS, POOL_MANAGER_ADDRESS} from "@/lib/contracts";
+import {LIQUIDITY_ROUTER_ADDRESS, POOL_MANAGER_ADDRESS, STATE_VIEW_ADDRESS} from "@/lib/contracts";
 import {
   TEST_ERC20_ABI,
   ROUTER_ABI,
@@ -29,6 +30,7 @@ export function LpDashboard({pool}: {pool: Pool}) {
   const {address, isConnected} = useAccount();
   const publicClient = usePublicClient();
   const {writeContractAsync} = useWriteContract();
+  const {recordProvide, recordRemove} = useLpPositions(address);
   const [busy, setBusy] = useState<string | null>(null);
   const [inputAmt, setInputAmt] = useState("1");
 
@@ -40,7 +42,7 @@ export function LpDashboard({pool}: {pool: Pool}) {
       ? [
           {address: livePool.token0, abi: TEST_ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS]},
           {address: livePool.token1, abi: TEST_ERC20_ABI, functionName: "balanceOf" as const, args: [POOL_MANAGER_ADDRESS]},
-          {address: POOL_MANAGER_ADDRESS, abi: POOL_MANAGER_ABI_SLICE, functionName: "getSlot0" as const, args: [livePool.poolId as `0x${string}`]},
+          {address: STATE_VIEW_ADDRESS, abi: POOL_MANAGER_ABI_SLICE, functionName: "getSlot0" as const, args: [livePool.poolId as `0x${string}`]},
         ]
       : [],
     query: {enabled: !!livePool},
@@ -121,7 +123,8 @@ export function LpDashboard({pool}: {pool: Pool}) {
   const inputValid = inputWei > 0n;
 
   async function wait(hash: `0x${string}`) {
-    await publicClient?.waitForTransactionReceipt({hash});
+    const r = await publicClient?.waitForTransactionReceipt({hash});
+    if (r && r.status !== "success") throw new Error("Transaction reverted on-chain");
   }
 
   async function mintTokens() {
@@ -168,6 +171,7 @@ export function LpDashboard({pool}: {pool: Pool}) {
           args: [key, liquidityParams(liquidityDelta), "0x"],
         })
       );
+      recordProvide(pool.id as `0x${string}`, inputWei);
       toast.success("Liquidity provided", {description: `Added ${inputAmt} token0-equivalent to the pool.`});
       await refetch();
     } catch (e) {
@@ -189,6 +193,7 @@ export function LpDashboard({pool}: {pool: Pool}) {
           args: [key, liquidityParams(-liquidityDelta), "0x"],
         })
       );
+      recordRemove(pool.id as `0x${string}`, inputWei);
       toast.success("Liquidity removed", {description: `Removed ${inputAmt} token0-equivalent from the pool.`});
       await refetch();
     } catch (e) {
