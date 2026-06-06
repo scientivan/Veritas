@@ -2,6 +2,22 @@ import {parseEther, zeroHash, type Address} from "viem";
 import {HOOK_ADDRESS} from "./contracts";
 import type {LivePool} from "./livePools";
 
+/** Minimal PoolManager ABI for reading pool state. */
+export const POOL_MANAGER_ABI_SLICE = [
+  {
+    name: "getSlot0",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{name: "id", type: "bytes32"}],
+    outputs: [
+      {name: "sqrtPriceX96", type: "uint160"},
+      {name: "tick", type: "int24"},
+      {name: "protocolFee", type: "uint24"},
+      {name: "lpFee", type: "uint24"},
+    ],
+  },
+] as const;
+
 /** Uniswap v4 dynamic-fee flag (0x800000); the pool was initialized with it. */
 const DYNAMIC_FEE_FLAG = 0x800000;
 const TICK_SPACING = 60;
@@ -75,4 +91,23 @@ export function buildPoolKey(pool: LivePool): PoolKey {
 
 export function liquidityParams(delta: bigint) {
   return {tickLower: TICK_LOWER, tickUpper: TICK_UPPER, liquidityDelta: delta, salt: zeroHash};
+}
+
+const Q96 = 2n ** 96n;
+
+/**
+ * Convert a token0 input amount to a full-range liquidity delta.
+ * Derived from x*y=k: for a full-range position, L = amount0 * sqrtPrice.
+ * sqrtPriceX96 is the Q96-encoded sqrt price from PoolManager.getSlot0.
+ * Falls back to 1:1 (sqrtPriceX96 = 2^96) when price is not yet loaded.
+ */
+export function computeLiquidityDelta(amount0: bigint, sqrtPriceX96: bigint): bigint {
+  const sqrtP = sqrtPriceX96 > 0n ? sqrtPriceX96 : Q96;
+  return (amount0 * sqrtP) / Q96;
+}
+
+/** Estimate the token1 counterpart for a given token0 amount at current price (display only). */
+export function estimateToken1(amount0: number, sqrtPriceX96: bigint): number {
+  const sqrtP = Number(sqrtPriceX96) / Number(Q96);
+  return amount0 * sqrtP * sqrtP;
 }

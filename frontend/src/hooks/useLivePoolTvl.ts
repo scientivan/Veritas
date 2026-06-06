@@ -46,7 +46,9 @@ export function useLivePoolTvl(pools: LivePool[]): Map<string, number | null> {
       if (bal0?.status === "success" && bal1?.status === "success") {
         const tokens0 = Number(formatUnits(bal0.result as bigint, DECIMALS));
         const tokens1 = Number(formatUnits(bal1.result as bigint, DECIMALS));
-        map.set(p.attestationId.toLowerCase(), (tokens0 + tokens1) * ASSUMED_TOKEN_PRICE_USD);
+        const p0 = p.token0PriceUsd ?? ASSUMED_TOKEN_PRICE_USD;
+        const p1 = p.token1PriceUsd ?? ASSUMED_TOKEN_PRICE_USD;
+        map.set(p.attestationId.toLowerCase(), tokens0 * p0 + tokens1 * p1);
       } else {
         map.set(p.attestationId.toLowerCase(), null);
       }

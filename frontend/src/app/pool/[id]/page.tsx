@@ -7,11 +7,12 @@ import {Footer} from "@/components/Footer";
 import {DRSGauge} from "@/components/DRSGauge";
 import {DrsHistory} from "@/components/DrsHistory";
 import {LpDashboard} from "@/components/LpDashboard";
+import {LpHistory} from "@/components/LpHistory";
 import {LivePoolCard} from "@/components/LivePoolCard";
 import {Card} from "@/components/ui/Card";
 import {getOnChainPool} from "@/lib/serverRegistry";
 import {getLivePool, getLivePoolTvl} from "@/lib/livePools";
-import {poolImage} from "@/lib/poolMeta";
+import {poolImage, ASSUMED_ANNUAL_TURNOVER} from "@/lib/poolMeta";
 import {dynamicFeeBps} from "@/lib/drs";
 import {formatFeeBps, formatPct, formatUsd, shortenAddress, shortenHash} from "@/lib/utils";
 import {ExplorerLink} from "@/components/ExplorerLink";
@@ -129,7 +130,8 @@ export default async function PoolDetail({params}: {params: Promise<{id: string}
             {/* Right: LP + facts */}
             <div className="flex flex-col gap-6">
               {livePool && <LivePoolCard pool={livePool} drs={pool.drs} />}
-              <LpDashboard pool={pool} tvlUsd={tvl?.tvlUsd ?? null} />
+              <LpDashboard pool={pool} />
+              <LpHistory pool={pool} />
 
               <Card className="p-6">
                 <h2 className="font-display text-lg font-semibold text-ink">Pool</h2>
@@ -149,7 +151,7 @@ export default async function PoolDetail({params}: {params: Promise<{id: string}
                     value={tvl ? `${formatUsd(tvl.tvlUsd)} (sim.)` : "-"}
                     inline
                   />
-                  <Fact label="APY" value="- (n/a on testnet)" inline />
+                  <ApyBreakdown pool={pool} />
                   <Fact label="Duplicates" value={`${pool.duplicateCount}`} inline />
                 </dl>
               </Card>
@@ -159,6 +161,36 @@ export default async function PoolDetail({params}: {params: Promise<{id: string}
       </main>
       <Footer />
     </>
+  );
+}
+
+function ApyBreakdown({pool}: {pool: import("@/lib/types").Pool}) {
+  const baseApy = (pool.baseFeeBps / 10000) * ASSUMED_ANNUAL_TURNOVER;
+  const maxApy = (pool.maxFeeBps / 10000) * ASSUMED_ANNUAL_TURNOVER;
+  const currentApy = pool.gated
+    ? null
+    : (dynamicFeeBps(pool.drs, pool.baseFeeBps, pool.maxFeeBps) / 10000) * ASSUMED_ANNUAL_TURNOVER;
+
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center justify-between">
+        <dt className="text-muted">APY (est.)</dt>
+        <dd className="font-mono tnum text-ink">
+          {currentApy !== null ? `${currentApy.toFixed(1)}%` : "- (gated)"}
+        </dd>
+      </div>
+      <div className="flex items-center justify-between pl-3">
+        <dt className="text-xs text-faint">At DRS=0 (base fee)</dt>
+        <dd className="font-mono tnum text-xs text-faint">{baseApy.toFixed(1)}%</dd>
+      </div>
+      <div className="flex items-center justify-between pl-3">
+        <dt className="text-xs text-faint">At gate (DRS=85%)</dt>
+        <dd className="font-mono tnum text-xs text-faint">{maxApy.toFixed(1)}%</dd>
+      </div>
+      <p className="pl-3 text-[10px] text-faint">
+        Based on {ASSUMED_ANNUAL_TURNOVER}× assumed annual turnover. No real volume on testnet.
+      </p>
+    </div>
   );
 }
 

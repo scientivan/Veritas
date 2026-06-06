@@ -124,6 +124,53 @@ First v4 hook to use **off-chain content uniqueness for IL calibration**, and th
 
 ---
 
+## Why now
+
+Three things converged in 2025 to make this both possible and urgent.
+
+**1. Uniswap v4 hooks, available mainnet January 2025, enable per-pool programmable logic for the first time.** Every prior version had a single global fee and no mechanism for a pool to be aware of the asset inside it. The architecture that makes DRS-driven pricing even possible is brand new.
+
+**2. The AI content explosion has made the A channel acutely necessary.** AI tools now generate an estimated 15 billion images per month (Adobe, 2024). The gap between "provably original" and "practically AI-replicable" is now measured in seconds, not months. An LP underwriting a content pool today faces a risk that did not meaningfully exist at scale three years ago.
+
+**3. The tokenization of content IP is accelerating, but the DeFi infrastructure for it is missing.** OpenSea disabled its free minting tool in 2022 after finding over 80% of mints were copies, plagiarism, or spam (OpenSea, Jan 2022). That ratio is the LP's problem: it is the exact reason TVL in content pools is essentially zero. The $250B+ creator economy (Goldman Sachs, 2023) is trying to tokenize, and AMMs are the right venue, but LPs cannot enter a market where they cannot price what they are underwriting.
+
+Veritas exists precisely at this intersection: the hook architecture is new enough that this slot is unclaimed, and the risk it prices is large enough, and growing fast enough, that it needed solving.
+
+---
+
+## Partner Integrations
+
+### Unichain
+
+The entire Veritas stack is deployed on **Unichain Sepolia (chainId 1301)**, chosen as the primary home for Uniswap v4 activity.
+
+| What | Where in code |
+|---|---|
+| Primary deploy target (all 4 contracts) | `contracts/script/Deploy.s.sol` |
+| Live addresses | `contracts/deployments/latest.json` |
+| PoolManager address used | `0x00B036B58a818B1BC34d502D3fE730Db729e62AC` (official Unichain Sepolia) |
+| 4 real v4 pools opened through the hook | `contracts/deployments/seeded-dataset.json`, `contracts/script/DeployPool.s.sol` |
+| Unichain Sepolia RPC | `https://sepolia.unichain.org` (`UNICHAIN_SEPOLIA_RPC_URL` in `.env`) |
+| Source verification | `contracts/verify.sh` (Sourcify + Uniscan/Etherscan v2) |
+
+The frontend reads only on-chain state from Unichain Sepolia via viem/wagmi (`frontend/src/lib/wagmi.ts`). All attestations, pool data, disputes, and liquidity interactions go through Unichain.
+
+### Reactive Network
+
+The living-DRS loop that keeps the duplicate-density score alive on-chain without a bot or keeper runs on **Reactive Lasna (chainId 5318007)** and calls back to Unichain Sepolia.
+
+| What | Where in code |
+|---|---|
+| `DilutionMonitorRSC` (Reactive Smart Contract on Lasna) | `contracts/src/reactive/DilutionMonitorRSC.sol` |
+| `VeritasRegistryCallback` (callback receiver on Unichain) | `contracts/src/VeritasRegistryCallback.sol` |
+| Deploy script and runbook | `contracts/script/DeployRSC.s.sol`, `contracts/script/REACTIVE_RUNBOOK.md` |
+| Live RSC address (Lasna) | `0xB44F024468dc78572D1Ad7b3f5Ce3A51408E5C5d` (see `contracts/deployments/reactive.json`) |
+| Integration tests (simulated ReactVM) | `contracts/test/ReactiveIntegration.t.sol` |
+
+The RSC subscribes to `NewAttestation` events emitted by `VeritasRegistry` on Unichain. On each new attestation it calls `getNearDuplicates` + `incrementDilutionCount` on the registry, raising the on-chain D component for every affected asset with no human in the loop. **Proven live on testnet:** a near-duplicate attestation autonomously raised `dilutionCount` from 0 to 2 (effective D from 0 to 0.60), confirmed by `DilutionIncremented` events on Uniscan and the RSC reaction on `lasna.reactscan.net`.
+
+---
+
 ## Repository
 
 ```

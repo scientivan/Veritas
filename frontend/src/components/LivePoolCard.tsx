@@ -3,6 +3,7 @@ import {Card} from "./ui/Card";
 import {ExplorerLink} from "./ExplorerLink";
 import {dynamicFeeBps} from "@/lib/drs";
 import {formatFeeBps} from "@/lib/utils";
+import {POOL_MANAGER_ADDRESS} from "@/lib/contracts";
 import type {LivePool} from "@/lib/livePools";
 
 
@@ -27,12 +28,16 @@ export function LivePoolCard({pool, drs}: {pool: LivePool; drs: number}) {
         <Row label="Fee range" value={`${formatFeeBps(pool.baseFeeBps)} to ${formatFeeBps(pool.maxFeeBps)}`} />
         <RowLink label="Token 0" value={pool.token0} />
         <RowLink label="Token 1" value={pool.token1} />
-        <RowLink label="Pool id" value={pool.poolId} type="tx" />
+        <Row
+          label="Pool id"
+          value={`${pool.poolId.slice(0, 10)}…${pool.poolId.slice(-8)}`}
+          mono
+        />
       </dl>
       <ExplorerLink
-        value={pool.token0}
+        value={POOL_MANAGER_ADDRESS}
         type="address"
-        label="View token on Uniscan"
+        label="View PoolManager on Uniscan"
         className="mt-4 text-xs text-muted hover:text-ink"
       />
     </Card>

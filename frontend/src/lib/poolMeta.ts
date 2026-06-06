@@ -13,6 +13,7 @@ const TITLES: Record<string, string> = {
   "0x0547799fc51ee53cdf6f3e1499c062b6cb1c62634865bf881552c90836a9721c": "Living-D · Near-copy",
   "0x2d17ad992673a898c202f7b624e30646299e2899155ab2b5897b48efa5e35d3f": "Studio Dog",
   "0x64e1d0819681e2b7820138e89bceeb333a3b10a9d87286bd857fcb8b9cb0f3e6": "Pinned Sample (IPFS)",
+  "0x59c69769faae70b3491acdae9a7898384982645a3d7887e44776c2dfa474c199": "Bridge · ETH Pool",
 };
 
 /**
@@ -31,6 +32,7 @@ const IMAGES: Record<string, string> = {
   "0x2d17ad992673a898c202f7b624e30646299e2899155ab2b5897b48efa5e35d3f": "https://picsum.photos/id/1025/120/120",
   "0x64e1d0819681e2b7820138e89bceeb333a3b10a9d87286bd857fcb8b9cb0f3e6":
     "https://gateway.pinata.cloud/ipfs/bafkreiabfq4phlewg4ncqulxatpszuq5qy35sywobt5yu3btbgivzdznny",
+  "0x59c69769faae70b3491acdae9a7898384982645a3d7887e44776c2dfa474c199": "https://picsum.photos/id/600/120/120",
 };
 
 export function poolImage(attestationId: string): string | null {

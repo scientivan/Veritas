@@ -10,6 +10,7 @@ import {cn} from "@/lib/utils";
 const LINKS = [
   {href: "/attest", label: "Attest"},
   {href: "/pools", label: "Pools"},
+  {href: "/portfolio", label: "Portfolio"},
   {href: "/dispute", label: "Disputes"},
 ];
 

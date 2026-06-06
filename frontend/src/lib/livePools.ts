@@ -1,4 +1,5 @@
 import {createPublicClient, formatUnits, http} from "viem";
+import {ASSUMED_TOKEN_PRICE_USD} from "./poolMeta";
 import type {Address, Hex} from "viem";
 import {unichainSepolia} from "./chains";
 import {POOL_MANAGER_ADDRESS} from "./contracts";
@@ -16,6 +17,10 @@ export interface LivePool {
   baseFeeBps: number;
   maxFeeBps: number;
   drsGateThreshold: number;
+  /** USD price per 1 token0 unit (18-dec). Defaults to ASSUMED_TOKEN_PRICE_USD if absent. */
+  token0PriceUsd?: number;
+  /** USD price per 1 token1 unit (18-dec). Defaults to ASSUMED_TOKEN_PRICE_USD if absent. */
+  token1PriceUsd?: number;
 }
 
 const POOLS: LivePool[] = [
@@ -54,6 +59,17 @@ const POOLS: LivePool[] = [
     baseFeeBps: 3000,
     maxFeeBps: 10000,
     drsGateThreshold: 8500,
+  },
+  {
+    attestationId: "0x59c69769faae70b3491acdae9a7898384982645a3d7887e44776c2dfa474c199",
+    poolId: "0x297db603fd8ee23d074f7e3b610e39a6f926d15908a1d416cadec37a3246bf21",
+    token0: "0x08433d25448631971c3D17f385520fA7eCE0e312",
+    token1: "0x1246331C7b611f8C17bf13ceFD044967bc6EED5b",
+    baseFeeBps: 3000,
+    maxFeeBps: 10000,
+    drsGateThreshold: 8500,
+    token0PriceUsd: 1,
+    token1PriceUsd: 3000,
   },
 ];
 
@@ -107,8 +123,9 @@ export async function getLivePoolTvl(
     const tokens0 = Number(formatUnits(bal0 as bigint, DECIMALS));
     const tokens1 = Number(formatUnits(bal1 as bigint, DECIMALS));
     const tvlTokens = tokens0 + tokens1;
-    // Assumed $1 per token on testnet.
-    return {tvlTokens, tvlUsd: tvlTokens};
+    const p0 = pool.token0PriceUsd ?? ASSUMED_TOKEN_PRICE_USD;
+    const p1 = pool.token1PriceUsd ?? ASSUMED_TOKEN_PRICE_USD;
+    return {tvlTokens, tvlUsd: tokens0 * p0 + tokens1 * p1};
   } catch {
     return null;
   }
