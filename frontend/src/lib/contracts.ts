@@ -33,8 +33,10 @@ export const V1_REGISTRY_ADDRESS: Address = "0x17c5e35D11D6Af09869aD48e8Da54F5a0
  * that actually exposes `registerIP` (= V1_REGISTRY_ADDRESS). Verified on-chain
  * 2026-06-07: 0xcecf19…20cc -> registry 0x17c5e35D… (which has registerIP). The
  * 0x3f0c62… deploy reads 0xB44F… which has no registerIP, so it is unusable.
+ * 2026-06-07 v2 redeploy: graduation overflow fixed (used actual pool sqrtPrice instead
+ * of graduationSqrtPriceX96 in _computeLiquidityFromAmounts during _migrateToCLMM).
  */
-export const V1_HOOK_ADDRESS: Address = "0xcecf19e7722e3b38b399785e00e13f7c3dcd20cc";
+export const V1_HOOK_ADDRESS: Address = "0xc3CfD4756d8d1B02B57d7b80082c1A95e515A0cc";
 /** v1 IPTokenFactory: deploys ERC-20 IP tokens on behalf of creators. */
 export const IP_TOKEN_FACTORY_ADDRESS: Address = "0xFB112b3AdF5d982A1Da4bEB6CD7370A64B98638c";
 /** v1 PoolSwapTest router used for bonding-curve buys. */

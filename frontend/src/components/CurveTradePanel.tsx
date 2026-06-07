@@ -41,6 +41,7 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
     abi: V1_HOOK_ABI,
     functionName: "launchpads",
     args: [poolId],
+    query: {refetchInterval: 5000},
   });
   const cfg = decodeLaunchpads(lpData as readonly unknown[] | undefined);
   // If the read hasn't resolved yet, assume LAUNCHPAD (the just-opened state) so the
@@ -58,13 +59,25 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
           {address: record.ipToken, abi: TEST_ERC20_ABI, functionName: "allowance" as const, args: [address, V1_SWAP_ROUTER_ADDRESS]},
         ]
       : [],
-    query: {enabled: !!address},
+    query: {enabled: !!address, refetchInterval: 5000},
   });
 
   const balRaise = (userData?.[0]?.result as bigint | undefined) ?? 0n;
   const balIp = (userData?.[1]?.result as bigint | undefined) ?? 0n;
   const allowRaise = (userData?.[2]?.result as bigint | undefined) ?? 0n;
   const allowIp = (userData?.[3]?.result as bigint | undefined) ?? 0n;
+
+  // Per-wallet buy limit: 2% of curveAllocation (contract constant MAX_BUY_BPS = 200 / 10000).
+  const maxBuyTokens = cfg ? (cfg.curveAllocation * 200n) / 10000n : 0n;
+  const {data: alreadyBoughtRaw, refetch: refetchBought} = useReadContract({
+    address: V1_HOOK_ADDRESS,
+    abi: V1_HOOK_ABI,
+    functionName: "userTokensBought",
+    args: address ? [poolId, address] : undefined,
+    query: {enabled: !!address && !!cfg, refetchInterval: 5000},
+  });
+  const alreadyBought = (alreadyBoughtRaw as bigint | undefined) ?? 0n;
+  const remainingAllowance = maxBuyTokens > alreadyBought ? maxBuyTokens - alreadyBought : 0n;
 
   const price = cfg ? curvePrice(cfg.curveA, cfg.curveB, cfg.tokensSold) : 0;
   const progress = cfg ? raiseProgress(cfg) : 0;
@@ -82,7 +95,6 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
 
   const inputBal = effectiveSide === "buy" ? balRaise : balIp;
   const inputLabel = effectiveSide === "buy" ? RAISE_TOKEN_SYMBOL : ipLabel;
-  const inputValid = amountWei > 0n && amountWei <= inputBal;
 
   const estOut =
     effectiveSide === "buy"
@@ -90,12 +102,20 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
       : amountNum * price; // sell IP -> raise
   const estOutLabel = effectiveSide === "buy" ? ipLabel : RAISE_TOKEN_SYMBOL;
 
+  // For buys, also validate that the estimated output doesn't exceed the wallet's remaining allowance.
+  const remainingAllowanceNum = Number(formatEther(remainingAllowance));
+  const exceedsLimit = effectiveSide === "buy" && isLaunchpad && estOut > 0 && estOut > remainingAllowanceNum;
+  const inputValid = amountWei > 0n && amountWei <= inputBal && !exceedsLimit;
+
+  // Max spendable USDC to buy exactly remainingAllowance tokens (invert estimateTokensOut).
+  const maxRaiseForLimit = price > 0 ? (remainingAllowanceNum * price) / 0.9985 : 0;
+
   async function wait(hash: Hex) {
     const r = await publicClient?.waitForTransactionReceipt({hash});
     if (r && r.status !== "success") throw new Error("Transaction reverted on-chain");
   }
   async function refetch() {
-    await Promise.all([refetchLp(), refetchUser()]);
+    await Promise.all([refetchLp(), refetchUser(), refetchBought()]);
   }
 
   async function mintRaise() {
@@ -212,6 +232,13 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
             <Row label={`Your ${RAISE_TOKEN_SYMBOL}`} value={(+formatEther(balRaise)).toFixed(2)} subtle />
           </>
         )}
+        {isLaunchpad && maxBuyTokens > 0n && (
+          <Row
+            label="Buy limit / wallet"
+            value={`${remainingAllowanceNum.toFixed(2)} ${ipLabel} remaining`}
+            subtle
+          />
+        )}
       </dl>
 
       {/* Buy/Sell toggle (sell only after graduation) */}
@@ -242,8 +269,23 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
           <div className="flex flex-col gap-1">
             <label className="flex items-center justify-between text-xs text-muted">
               <span>You pay ({inputLabel})</span>
-              <button className="text-primary-ink hover:underline" onClick={() => setAmount(formatEther(inputBal))} disabled={!!busy}>
-                Max: {(+formatEther(inputBal)).toFixed(2)}
+              <button
+                className="text-primary-ink hover:underline"
+                onClick={() => {
+                  if (effectiveSide === "buy" && isLaunchpad && maxRaiseForLimit > 0) {
+                    // Cap to the USDC needed for the remaining per-wallet limit.
+                    const cappedUsdc = Math.min(+formatEther(balRaise), maxRaiseForLimit);
+                    setAmount(cappedUsdc.toFixed(6));
+                  } else {
+                    setAmount(formatEther(inputBal));
+                  }
+                }}
+                disabled={!!busy}
+              >
+                Max:{" "}
+                {effectiveSide === "buy" && isLaunchpad && maxRaiseForLimit > 0
+                  ? `${Math.min(+formatEther(balRaise), maxRaiseForLimit).toFixed(2)} ${RAISE_TOKEN_SYMBOL}`
+                  : `${(+formatEther(inputBal)).toFixed(2)}`}
               </button>
             </label>
             <input
@@ -284,6 +326,11 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
           {amountWei > inputBal && amountWei > 0n && (
             <p className="text-center text-xs text-risk-high">
               Not enough {inputLabel}.{effectiveSide === "buy" ? ` Mint test ${RAISE_TOKEN_SYMBOL} first.` : ""}
+            </p>
+          )}
+          {exceedsLimit && (
+            <p className="text-center text-xs text-risk-high">
+              Exceeds per-wallet limit. Max {remainingAllowanceNum.toFixed(2)} {ipLabel} remaining this wallet.
             </p>
           )}
           {busy && <p className="text-center text-xs text-muted">{busy}</p>}

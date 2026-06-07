@@ -337,6 +337,17 @@ export const V1_HOOK_ABI = [
       {name: "tokensSold", type: "uint256", indexed: false},
     ],
   },
+  {
+    // Public mapping: cumulative IP tokens bought by a wallet during the launchpad.
+    name: "userTokensBought",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      {name: "poolId", type: "bytes32"},
+      {name: "user", type: "address"},
+    ],
+    outputs: [{name: "", type: "uint256"}],
+  },
 ] as const;
 
 // ── v1 VeritasRegistry (permissionless IP token registry the v1 hook reads) ────

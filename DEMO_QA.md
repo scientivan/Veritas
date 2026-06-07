@@ -12,7 +12,8 @@ Severity: **BLOCKER** (demo flow does not connect), **HIGH** (likely to fail on 
 - `[~]` Wallet connected to Unichain Sepolia (chainId 1301) with test ETH for gas.
 - `[x]` `IPLaunchRegistry` deployed and wired: `0x9dF98317b07B2964c25b45a934a0f9DAAB50aea2` (`frontend/src/lib/contracts.ts`).
 - `[x]` Pool-state reads use StateView, not PoolManager (PoolManager.getSlot0 reverts on Unichain). Verified on-chain. `STATE_VIEW_ADDRESS` in contracts.ts.
-- `[x]` CRITICAL FIX: `V1_HOOK_ADDRESS` was stale (`0x2a25c8…044`, a pre-bonding-curve deploy with NO `initializeLaunchpad`/`launchpads`, which would have reverted Step 4). Corrected to `0x3f0c62c16c13ac9da96db77d6c934006843de0cc`, verified on-chain to have the bonding-curve functions, valid v4 permission bits (& 0x3FFF == 0x20CC), and `registry()` == `V1_REGISTRY_ADDRESS`. Also fixed the `launchpads` ABI (deployed getter returns 12 flat values, not a single tuple) + added `decodeLaunchpads`.
+- `[x]` CRITICAL FIX v2: `V1_HOOK_ADDRESS` updated to `0xc3CfD4756d8d1B02B57d7b80082c1A95e515A0cc` (2026-06-07 redeploy). Previous deploy (`0xcecf19…20cc`) had an arithmetic overflow in `_migrateToCLMM`: it used `graduationSqrtPriceX96` to compute liquidity but the pool's actual price stays at `SQRT_PRICE_1_1` (AMM bypassed during bonding curve phase), so PoolManager demanded more tokens than available at graduation. Fix: `_computeLiquidityFromAmounts` now uses `poolManager.getSlot0(poolId)` actual price. Registry address unchanged: `0x17c5e35D…` (paired with new hook).
+- `[x]` Pre-seeded demo pool active: IP token `0xc858FE61C1f38D5c18C002aa37fAeA7Fefe7238A` on new hook, poolId `0x9b16df97…`, linked to attestation `0x40e6a7dc…` in `useLaunchpadPools`. Demo URL: `/trade/0x40e6a7dc19b5b6314b6084ff13db1475e0ac3c9859fb884b969e2ab861a1a4b9`.
 - `[x]` Raise token (Mock USDC `0xD977…`) is 18 decimals and publicly mintable, verified on-chain (collectors can mint test USDC to buy).
 
 ---
@@ -56,13 +57,16 @@ Severity: **BLOCKER** (demo flow does not connect), **HIGH** (likely to fail on 
 
 ## Status summary
 
-All code-level shortcomings are now CLOSED and type-check + lint clean, and the contract wiring was verified on-chain (StateView, the correct bonding-curve hook, mintable 18-dec USDC, IPLaunchRegistry gate). The creator -> collector loop is wired end to end in code: a launched IP is registered, its launchpad opens on the correct hook, it appears in the marketplace, and it is buyable on the curve.
+All code-level shortcomings are CLOSED. Graduation overflow was fixed and a new hook deployed (2026-06-07). A pre-seeded demo pool is wired into the frontend via `DEMO_LAUNCHPAD` in `useLaunchpadPools`.
+
+**Pre-seeded demo pool** (for Collector + graduation demo):
+- URL: `/trade/0x40e6a7dc19b5b6314b6084ff13db1475e0ac3c9859fb884b969e2ab861a1a4b9`
+- Graduation: seeded to 100% via SeedCurve.s.sol (101 wallets x 10 USDC each)
+- After graduation: phase=2, LP position locked in CLMM, buy/sell both open
 
 What REMAINS can only be done with a wallet on the testnet (I cannot drive the browser/wallet):
 
-1. Run the full Creator launch once (Steps 1-4), confirming the 4-tx `openLaunchpad` lands on the corrected hook.
-2. Confirm the launched IP then shows in `/market` and a curve buy succeeds.
+1. Run the full Creator launch once (Steps 1-4), confirming the 4-tx `openLaunchpad` lands on the fixed hook.
+2. Confirm the launched IP then shows in `/market` and a curve buy succeeds on a pre-graduation pool.
 3. Confirm a seeded-pool buy/sell and an LP provide/remove.
 4. Re-confirm the living-DRS Reactive loop is still demoable.
-
-If anything reverts during those runs, capture the error and it becomes the next fix. The likeliest remaining risk is the exact behavior of the 4-tx `openLaunchpad` sequence under real gas/state, which is impossible to fully validate without broadcasting.
