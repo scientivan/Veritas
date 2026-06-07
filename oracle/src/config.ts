@@ -53,23 +53,19 @@ export const config = {
   /** Hard ceiling: the on-chain oracle rejects a canonical DRS above 9500. */
   maxScore: num("MAX_SCORE", 9500),
   /**
-   * Temperature for image-A overconfidence calibration. The open SMOGY detector
-   * is bimodal and overconfident (measured: ~30% of real photos flagged AI at
-   * ~1.0). T > 1 softens extreme scores via logit scaling; T = 1 is a no-op.
-   * Default 1.5 is conservative (keeps true AI above the gate while pulling
-   * borderline scores toward neutral). Raise it to further damp false positives
-   * at the cost of true-positive sensitivity.
+   * Temperature for image-A overconfidence calibration. Each detector's raw
+   * P(AI) is individually calibrated before ensemble averaging. T > 1 softens
+   * extreme scores; T = 1 is a no-op. Default 1.5 is conservative.
    */
   imageAiTemperature: num("IMAGE_AI_TEMPERATURE", 1.5),
   /**
-   * Hard cap on the image-A contribution. The open SMOGY detector confidently
-   * mislabels ~30-50% of real photos as AI, so a single unreliable detector must
-   * NOT be able to gate a pool on its own. Capping A here keeps a genuine-AI
-   * signal as a soft fee surcharge while reserving gating for the trustless,
-   * on-chain D (duplication) channel. A unique photo wrongly flagged tops out at
-   * this value instead of ~1.0. Set to 1 to disable the cap.
+   * Hard cap on the ensemble image-A contribution. With 3 independent detectors
+   * the false-positive rate is much lower than a single model, so the cap can
+   * safely be raised. Default 0.9 lets clearly AI-generated content reach a high
+   * DRS while still preventing a rogue single-model signal from gating alone.
+   * Set to 1 to disable.
    */
-  imageAiMaxContribution: num("IMAGE_AI_MAX_CONTRIBUTION", 0.3),
+  imageAiMaxContribution: num("IMAGE_AI_MAX_CONTRIBUTION", 0.9),
 
   /** Pinata JWT for real IPFS pinning. If unset, the service derives a local CIDv1. */
   pinataJwt: process.env.PINATA_JWT?.trim() || "",

@@ -22,6 +22,7 @@ import {
   shortenHash,
 } from "@/lib/utils";
 import { ExplorerLink } from "@/components/ExplorerLink";
+import { IPVerifiedSection } from "@/components/IPVerifiedSection";
 
 function isAttestationId(id: string): id is `0x${string}` {
   return id.startsWith("0x") && id.length === 66;
@@ -226,6 +227,7 @@ export default async function PoolDetail({
                     <dt className="text-muted">LP protection</dt>
                     <dd className="font-semibold text-ink">DRS-based dynamic fee</dd>
                   </div>
+                  <IPVerifiedSection attestationId={pool.id as `0x${string}`} />
                 </dl>
                 <Link
                   href="/launch"

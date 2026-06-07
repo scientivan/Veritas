@@ -87,7 +87,7 @@ const DEMOS: {label: string; subject: Subject}[] = [
     subject: {
       title: "Unique upload",
       type: "image",
-      url: "https://picsum.photos/id/99/320/320",
+      url: "https://picsum.photos/id/700/320/320",
       swatch: hueSwatch("unique"),
     },
   },

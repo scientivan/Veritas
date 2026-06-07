@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veritas Protocol · UHI9 Hookathon</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:          oklch(0.145 0 0);
+      --surface:     oklch(0.185 0 0);
+      --surface-2:   oklch(0.225 0 0);
+      --border:      oklch(0.275 0 0);
+      --border-s:    oklch(0.34 0 0);
+      --ink:         oklch(0.975 0 0);
+      --muted:       oklch(0.74 0 0);
+      --faint:       oklch(0.52 0 0);
+      --primary:     oklch(0.522 0.267 263.3);
+      --primary-ink: oklch(0.78 0.13 263);
+      --on-primary:  oklch(0.99 0 0);
+      --v1:          oklch(0.78 0.13 263);
+      --v2:          oklch(0.72 0.17 152);
+      --bridge:      oklch(0.80 0.15 85);
+      --risk-low:    oklch(0.72 0.17 152);
+      --risk-mid:    oklch(0.80 0.15 85);
+      --risk-high:   oklch(0.62 0.21 25);
+      --ease-expo:   cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-out:    cubic-bezier(0.33, 1, 0.68, 1);
+      --sans: 'Hanken Grotesk', system-ui, sans-serif;
+      --mono: 'JetBrains Mono', ui-monospace, monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow: hidden;
+    }
+
+    #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+
+    #deck {
+      width: 1920px;
+      height: 1080px;
+      position: absolute;
+      overflow: hidden;
+      transform-origin: top left;
+    }
+
+    /* ── Slides ────────────────────────────────────────────── */
+    .slide {
+      position: absolute; inset: 0;
+      padding: 68px 92px;
+      display: flex; flex-direction: column;
+      background: var(--bg);
+      opacity: 0; pointer-events: none;
+      transform: translateX(80px);
+      transition: opacity 360ms var(--ease-expo), transform 360ms var(--ease-expo);
+    }
+    .slide.active { opacity: 1; pointer-events: all; transform: translateX(0); }
+    .slide.exit   { opacity: 0; transform: translateX(-80px); }
+
+    @media (prefers-reduced-motion: reduce) {
+      .slide { transition: opacity 200ms linear; transform: none !important; }
+    }
+
+    /* ── .ai: animate-in on slide activation ─────────────── */
+    .ai { opacity: 0; transform: translateY(20px); }
+    .slide.active .ai {
+      animation: fadeUp 0.55s var(--ease-expo) both;
+      animation-delay: var(--d, 0ms);
+    }
+    .ai.from-left  { transform: translateX(-20px) translateY(0); }
+    .slide.active .ai.from-left  { animation: fadeLeft  0.55s var(--ease-expo) both; animation-delay: var(--d, 0ms); }
+    .ai.from-right { transform: translateX(20px) translateY(0); }
+    .slide.active .ai.from-right { animation: fadeRight 0.55s var(--ease-expo) both; animation-delay: var(--d, 0ms); }
+    .ai.scale-in   { transform: scale(0.94); }
+    .slide.active .ai.scale-in   { animation: scaleIn  0.55s var(--ease-expo) both; animation-delay: var(--d, 0ms); }
+
+    @keyframes fadeUp   { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeLeft { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes fadeRight{ from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+    @keyframes scaleIn  { from { opacity:0; transform:scale(0.94); } to { opacity:1; transform:scale(1); } }
+
+    /* ── .step: manual step-reveal ───────────────────────── */
+    .step {
+      opacity: 0; transform: translateY(10px);
+      transition: opacity 0.38s var(--ease-out), transform 0.38s var(--ease-out);
+    }
+    .step.on { opacity: 1; transform: translateY(0); }
+
+    /* ── SVG path draw ────────────────────────────────────── */
+    .draw-path { stroke-dasharray: 1000; stroke-dashoffset: 1000; }
+    .slide.active .draw-path {
+      animation: drawPath 1.1s var(--ease-expo) both;
+      animation-delay: var(--d, 300ms);
+    }
+    @keyframes drawPath { to { stroke-dashoffset: 0; } }
+
+    /* ── Pulse / glow keyframes ───────────────────────────── */
+    @keyframes pulseGlowAmber {
+      0%,100% { box-shadow: 0 0 0 0 oklch(0.80 0.15 85 / 0.3); }
+      50%      { box-shadow: 0 0 0 12px oklch(0.80 0.15 85 / 0); }
+    }
+    @keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    @keyframes float { 0%,100% { transform:translateY(0); } 50% { transform:translateY(-6px); } }
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    .count-stat { display: inline-block; }
+
+    /* ── Shared typography ────────────────────────────────── */
+    .slide-title {
+      font-size: 52px; font-weight: 800; letter-spacing: -0.03em;
+      line-height: 1.06; color: var(--ink); text-wrap: balance; flex-shrink: 0;
+    }
+    .slide-title .accent { color: var(--primary-ink); }
+    .slide-title .v1c    { color: var(--v1); }
+    .slide-title .v2c    { color: var(--v2); }
+    .slide-title .brc    { color: var(--bridge); }
+
+    .mono { font-family: var(--mono); }
+
+    .system-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      letter-spacing: 0.05em; text-transform: uppercase;
+      padding: 5px 14px; border-radius: 20px; flex-shrink: 0;
+    }
+    .system-badge.v1 { background: oklch(0.78 0.13 263 / 0.14); color: var(--v1); border: 1px solid oklch(0.78 0.13 263 / 0.35); }
+    .system-badge.v2 { background: oklch(0.72 0.17 152 / 0.14); color: var(--v2); border: 1px solid oklch(0.72 0.17 152 / 0.35); }
+    .system-badge.br { background: oklch(0.80 0.15 85  / 0.14); color: var(--bridge); border: 1px solid oklch(0.80 0.15 85 / 0.35); }
+
+    /* ── Code block with syntax highlighting ─────────────── */
+    .code-block {
+      background: oklch(0.10 0 0);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 26px;
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.75;
+      color: oklch(0.84 0 0);
+    }
+    .code-block .cb-head {
+      font-size: 11px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase;
+      margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .code-block .cb-head .cb-file { color: var(--primary-ink); font-size: 11px; }
+    .ck  { color: oklch(0.73 0.16 295); }
+    .ct  { color: oklch(0.80 0.12 195); }
+    .cf  { color: oklch(0.78 0.13 240); }
+    .cn2 { color: oklch(0.82 0.15 75); }
+    .cv2 { color: oklch(0.72 0.17 152); }
+    .cc2 { color: oklch(0.48 0 0); font-style: italic; }
+    .hl-g2 { display: block; background: oklch(0.72 0.17 152 / 0.10); margin: 0 -26px; padding: 0 26px; }
+    .hl-r2 { display: block; background: oklch(0.62 0.21 25 / 0.18); border-left: 2px solid oklch(0.62 0.21 25 / 0.8); padding-left: 8px; margin-left: -8px; }
+
+    /* ── Nav chrome ───────────────────────────────────────── */
+    #nav {
+      position: fixed; bottom: 28px; right: 36px;
+      display: flex; align-items: center; gap: 16px; z-index: 100;
+    }
+    #counter {
+      font-family: var(--mono); font-size: 13px; color: var(--faint);
+      min-width: 52px; text-align: center;
+    }
+    #nav button {
+      width: 36px; height: 36px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--muted); cursor: pointer; display: grid; place-items: center;
+      transition: background 140ms, color 140ms;
+    }
+    #nav button:hover { background: var(--surface-2); color: var(--ink); }
+    #nav button:disabled { opacity: 0.28; cursor: default; }
+
+    #progress {
+      position: fixed; bottom: 0; left: 0; height: 2px;
+      background: var(--primary); transition: width 320ms var(--ease-expo); z-index: 100;
+    }
+
+    /* dot nav */
+    #dots {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; z-index: 100;
+    }
+    .dot-item {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--border); cursor: pointer;
+      transition: background 200ms, transform 200ms;
+    }
+    .dot-item.on { background: var(--primary-ink); transform: scale(1.6); }
+
+    /* fullscreen + hint */
+    #fsbtn {
+      position: fixed; top: 20px; right: 28px;
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--muted); padding: 6px 14px; border-radius: 8px;
+      cursor: pointer; font-size: 12px; font-family: var(--mono); z-index: 100;
+      transition: border-color 150ms, color 150ms;
+    }
+    #fsbtn:hover { border-color: var(--primary-ink); color: var(--primary-ink); }
+
+    #hint {
+      position: fixed; bottom: 18px; left: 28px;
+      font-size: 11px; color: oklch(0.38 0 0); font-family: var(--mono); z-index: 100;
+    }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 1: Title
+    ══════════════════════════════════════════════════════ */
+    #s1 {
+      flex-direction: row; align-items: stretch; gap: 72px;
+      background: radial-gradient(ellipse 55% 70% at 80% 50%, oklch(0.522 0.267 263.3 / 0.08) 0%, var(--bg) 65%);
+    }
+    #s1 .left { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    #s1 .wordmark { display: flex; align-items: center; gap: 20px; margin-bottom: 44px; }
+    #s1 .wordmark .v-icon {
+      width: 60px; height: 60px; border-radius: 15px;
+      background: var(--primary); color: var(--on-primary);
+      font-size: 28px; font-weight: 900; display: grid; place-items: center; flex-shrink: 0;
+      box-shadow: 0 0 40px oklch(0.522 0.267 263.3 / 0.45);
+      animation: float 4s ease-in-out infinite;
+    }
+    #s1 .wordmark .name { font-size: 42px; font-weight: 800; letter-spacing: -0.04em; }
+    #s1 .tagline { font-size: 30px; font-weight: 500; color: var(--primary-ink); line-height: 1.28; margin-bottom: 24px; max-width: 640px; }
+    #s1 .sub { font-size: 17px; color: var(--muted); line-height: 1.62; max-width: 560px; }
+    #s1 .meta-row { display: flex; gap: 36px; margin-top: 52px; }
+    #s1 .meta-item { display: flex; flex-direction: column; gap: 5px; }
+    #s1 .meta-item .k { font-size: 10px; color: var(--faint); font-family: var(--mono); letter-spacing: 0.08em; text-transform: uppercase; }
+    #s1 .meta-item .v { font-size: 14px; color: var(--muted); font-family: var(--mono); }
+    #s1 .right { width: 520px; display: flex; align-items: center; justify-content: center; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 2: Problem
+    ══════════════════════════════════════════════════════ */
+    #s2 .prob-head { margin-bottom: 20px; }
+    #s2 .prob-head h2 { font-size: 50px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance; }
+    #s2 .prob-head .sub { font-size: 17px; color: var(--muted); margin-top: 8px; }
+
+    .data-chips { display: flex; gap: 12px; margin-bottom: 18px; }
+    .data-chip {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px 18px;
+    }
+    .data-chip .dc-num { font-family: var(--mono); font-size: 28px; font-weight: 700; line-height: 1; }
+    .data-chip .dc-lbl { font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+    .data-chip .dc-src { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 5px; letter-spacing: 0.04em; }
+    .dc-blue  .dc-num { color: var(--v1); }
+    .dc-green .dc-num { color: var(--v2); }
+    .dc-red   .dc-num { color: var(--risk-high); }
+    .dc-amber .dc-num { color: var(--bridge); }
+
+    .prob-rows { display: flex; flex-direction: column; }
+    .prob-row {
+      display: grid; grid-template-columns: 40px 220px 1fr;
+      gap: 28px; align-items: start;
+      padding: 14px 0; border-top: 1px solid var(--border);
+    }
+    .prob-row:last-child { border-bottom: 1px solid var(--border); }
+    .prob-row .pnum { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--faint); padding-top: 3px; }
+    .prob-row .ptitle { font-size: 16px; font-weight: 700; color: var(--ink); line-height: 1.25; }
+    .prob-row .pdesc { font-size: 14px; color: var(--muted); line-height: 1.55; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 3: Transition
+    ══════════════════════════════════════════════════════ */
+    #s3 {
+      align-items: center; justify-content: center;
+      background: radial-gradient(ellipse 50% 50% at 50% 45%, oklch(0.72 0.17 152 / 0.07) 0%, var(--bg) 65%);
+    }
+    #s3 .trans-inner { text-align: center; max-width: 1000px; }
+    #s3 .trans-eyebrow { font-family: var(--mono); font-size: 13px; color: var(--faint); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 28px; }
+    #s3 .trans-main {
+      font-size: 80px; font-weight: 900; letter-spacing: -0.04em;
+      line-height: 1.0; color: var(--ink); margin-bottom: 16px;
+    }
+    #s3 .trans-main .hi { color: var(--v2); }
+    #s3 .trans-divider { width: 64px; height: 2px; background: var(--border-s); margin: 32px auto; }
+    #s3 .trans-sub { font-size: 28px; font-weight: 600; color: var(--muted); margin-bottom: 52px; line-height: 1.3; }
+    #s3 .trans-chips { display: flex; gap: 16px; justify-content: center; }
+    .trans-chip {
+      display: flex; align-items: center; gap: 10px; padding: 10px 22px;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; font-family: var(--mono); font-size: 13px; color: var(--muted);
+    }
+    .trans-chip .tc-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .trans-chip.v2-chip .tc-dot { background: var(--v2); }
+    .trans-chip.br-chip .tc-dot { background: var(--bridge); }
+    .trans-chip.v1-chip .tc-dot { background: var(--v1); }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 4: V1 Launchpad
+    ══════════════════════════════════════════════════════ */
+    #s4 .v1-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; flex: 1; margin-top: 28px; align-items: start; }
+    .v1-phase-list { display: flex; flex-direction: column; gap: 20px; }
+    .v1-phase { display: flex; gap: 20px; align-items: flex-start; }
+    .v1-phase .ph-num {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: oklch(0.78 0.13 263 / 0.16); border: 1px solid oklch(0.78 0.13 263 / 0.30);
+      display: grid; place-items: center; flex-shrink: 0;
+      font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--v1); margin-top: 3px;
+    }
+    .v1-phase .ph-body .ph-title { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .v1-phase .ph-body .ph-desc  { font-size: 15px; color: var(--muted); line-height: 1.5; }
+    .v1-phase .ph-body .ph-code  { font-family: var(--mono); font-size: 11px; color: var(--v1); margin-top: 5px; background: oklch(0.78 0.13 263 / 0.08); padding: 3px 8px; border-radius: 5px; display: inline-block; }
+    .v1-right { display: flex; flex-direction: column; gap: 20px; padding-top: 8px; }
+    .v1-curve-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 26px 30px; }
+    .v1-curve-label { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 14px; }
+    .v1-stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--border); border-radius: 12px; overflow: hidden; }
+    .v1-stat { background: var(--surface); padding: 16px 18px; display: flex; flex-direction: column; gap: 4px; }
+    .v1-stat .sv { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--v1); }
+    .v1-stat .sl { font-size: 12px; color: var(--faint); }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 5: V2 Oracle
+    ══════════════════════════════════════════════════════ */
+    #s5 .v2-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 60px; flex: 1; margin-top: 28px; align-items: start; }
+    .formula-box { background: var(--surface); border: 1px solid var(--border-s); border-radius: 18px; padding: 36px 44px; }
+    .formula-comment { font-family: var(--mono); font-size: 12px; color: var(--v2); margin-bottom: 14px; }
+    .formula-main { font-family: var(--mono); font-size: 46px; font-weight: 700; color: var(--ink); letter-spacing: -0.02em; line-height: 1; }
+    .formula-main .eq { color: var(--primary-ink); }
+    .drs-breakdown { display: flex; flex-direction: column; gap: 12px; margin-top: 24px; }
+    .drs-row { display: flex; gap: 18px; align-items: flex-start; padding: 14px 18px; background: var(--surface-2); border-radius: 10px; }
+    .drs-row .dsym { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--v2); line-height: 1; flex-shrink: 0; width: 30px; }
+    .drs-row .dbody .dname { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+    .drs-row .dbody .ddesc { font-size: 13px; color: var(--muted); line-height: 1.5; }
+    .v2-right { display: flex; flex-direction: column; gap: 12px; padding-top: 8px; }
+    .pipeline-item { display: flex; gap: 14px; align-items: flex-start; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .pipeline-item .pi-icon { width: 28px; height: 28px; border-radius: 7px; background: oklch(0.72 0.17 152 / 0.16); display: grid; place-items: center; flex-shrink: 0; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--v2); }
+    .pipeline-item .pi-name { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .pipeline-item .pi-desc { font-size: 12px; color: var(--faint); line-height: 1.4; }
+    .pipeline-connector { width: 1px; height: 12px; background: var(--border); margin-left: 27px; flex-shrink: 0; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 6: Bridge
+    ══════════════════════════════════════════════════════ */
+    #s6 .bridge-layout { display: grid; grid-template-columns: 1fr 256px 1fr; gap: 28px; flex: 1; margin-top: 28px; align-items: center; }
+    .bridge-side { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; display: flex; flex-direction: column; gap: 14px; }
+    .bridge-side .bs-tag { font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
+    .bridge-side.v1s .bs-tag { color: var(--v1); }
+    .bridge-side.v2s .bs-tag { color: var(--v2); }
+    .bridge-side .bs-name { font-size: 30px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+    .bridge-side.v1s .bs-name { color: var(--v1); }
+    .bridge-side.v2s .bs-name { color: var(--v2); }
+    .bridge-side .bs-body { font-size: 14px; color: var(--muted); line-height: 1.55; }
+    .bridge-side .bs-items { display: flex; flex-direction: column; gap: 9px; margin-top: 4px; }
+    .bridge-side .bs-item { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--muted); }
+    .bridge-side .bs-item::before { content: "›"; color: var(--faint); flex-shrink: 0; font-family: var(--mono); font-size: 16px; line-height: 1.2; }
+    .bridge-center { display: flex; flex-direction: column; align-items: center; }
+    .bridge-gate {
+      background: oklch(0.80 0.15 85 / 0.12); border: 1.5px solid oklch(0.80 0.15 85 / 0.45);
+      border-radius: 14px; padding: 22px 18px; text-align: center; width: 100%;
+      animation: pulseGlowAmber 3s ease-in-out infinite;
+    }
+    .bridge-gate .bg-name { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--bridge); letter-spacing: 0.04em; margin-bottom: 8px; text-transform: uppercase; }
+    .bridge-gate .bg-contract { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-bottom: 10px; }
+    .bridge-gate .bg-rule { font-size: 13px; font-weight: 700; color: var(--ink); line-height: 1.3; }
+    .bridge-gate .bg-rule .hi { color: var(--bridge); }
+    .bridge-arrow { font-size: 20px; color: var(--faint); margin: 6px 0; text-align: center; }
+    .bridge-loop-note { margin-top: 16px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; }
+    .bridge-loop-note strong { color: var(--ink); }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 7: Code Spotlight
+    ══════════════════════════════════════════════════════ */
+    #s7 .code-layout { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; flex: 1; margin-top: 28px; align-items: start; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 8: Three Actors
+    ══════════════════════════════════════════════════════ */
+    #s8 .actors-wrap {
+      display: grid; grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 2px; flex: 1; margin-top: 28px;
+      background: var(--border); border-radius: 16px; overflow: hidden;
+    }
+    .actor { background: var(--surface); padding: 34px 38px; display: flex; flex-direction: column; gap: 14px; }
+    .actor .ac-idx { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--faint); letter-spacing: 0.07em; text-transform: uppercase; }
+    .actor .ac-name { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; }
+    .actor.cr .ac-name { color: var(--v1); }
+    .actor.co .ac-name { color: var(--ink); }
+    .actor.lp .ac-name { color: var(--v2); }
+    .actor .ac-desc { font-size: 15px; color: var(--muted); line-height: 1.55; }
+    .actor .ac-uses { display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border); }
+    .ac-use-row { display: flex; gap: 10px; align-items: flex-start; }
+    .ac-use-row .use-badge { font-family: var(--mono); font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 5px; flex-shrink: 0; margin-top: 1px; text-transform: uppercase; letter-spacing: 0.04em; }
+    .ac-use-row .use-badge.v1b { background: oklch(0.78 0.13 263 / 0.15); color: var(--v1); }
+    .ac-use-row .use-badge.v2b { background: oklch(0.72 0.17 152 / 0.15); color: var(--v2); }
+    .ac-use-row .use-badge.brb { background: oklch(0.80 0.15 85  / 0.15); color: var(--bridge); }
+    .ac-use-row .use-text { font-size: 14px; color: var(--muted); line-height: 1.4; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 9: Architecture
+    ══════════════════════════════════════════════════════ */
+    #s9 .arch-layout { display: grid; grid-template-columns: 1fr 64px 1fr; flex: 1; margin-top: 28px; align-items: start; }
+    .arch-col-lbl { font-family: var(--mono); font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; margin-bottom: 18px; }
+    .arch-col-lbl.on  { color: var(--v1); }
+    .arch-col-lbl.off { color: var(--v2); }
+    .arch-items { display: flex; flex-direction: column; gap: 9px; }
+    .arch-card { padding: 13px 16px; border-radius: 10px; }
+    .arch-card .ac-nm { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+    .arch-card .ac-ds { font-size: 12px; color: var(--faint); line-height: 1.4; }
+    .arch-card.v1-card { background: oklch(0.78 0.13 263 / 0.06); border: 1px solid oklch(0.78 0.13 263 / 0.22); }
+    .arch-card.v2-card { background: oklch(0.72 0.17 152 / 0.06); border: 1px solid oklch(0.72 0.17 152 / 0.22); }
+    .arch-card.br-card { background: oklch(0.80 0.15 85  / 0.06); border: 1px solid oklch(0.80 0.15 85  / 0.22); }
+    .arch-mid { display: flex; align-items: center; justify-content: center; padding-top: 32px; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 10: Living DRS
+    ══════════════════════════════════════════════════════ */
+    #s10 .living-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; flex: 1; margin-top: 28px; }
+    .step-list { display: flex; flex-direction: column; gap: 18px; }
+    .step-item { display: flex; gap: 18px; align-items: flex-start; }
+    .step-item .sn { width: 30px; height: 30px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border-s); display: grid; place-items: center; flex-shrink: 0; font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--primary-ink); margin-top: 2px; }
+    .step-item .sb .st { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .step-item .sb .sd { font-size: 14px; color: var(--muted); line-height: 1.5; }
+    .step-item .sb .sc { font-family: var(--mono); font-size: 11px; color: var(--primary-ink); margin-top: 5px; }
+    .living-proof { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; display: flex; flex-direction: column; gap: 18px; }
+    .before-after { display: grid; grid-template-columns: 1fr auto 1fr; gap: 20px; align-items: center; }
+    .ba-col { display: flex; flex-direction: column; gap: 12px; }
+    .ba-sect { font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 4px; }
+    .ba-row { display: flex; flex-direction: column; gap: 3px; }
+    .ba-row .bl { font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: 0.04em; }
+    .ba-row .bv { font-family: var(--mono); font-size: 22px; font-weight: 700; }
+    .ba-row .bv.lo { color: var(--risk-low); }
+    .ba-row .bv.hi { color: var(--risk-high); }
+    .ba-arr { font-size: 22px; color: var(--primary-ink); }
+    .proof-pill { display: inline-flex; align-items: center; gap: 8px; background: oklch(0.72 0.17 152 / 0.12); color: var(--risk-low); border: 1px solid oklch(0.72 0.17 152 / 0.25); font-family: var(--mono); font-size: 12px; font-weight: 600; padding: 7px 16px; border-radius: 8px; width: fit-content; }
+    .proof-pill::before { content: "●"; font-size: 7px; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 11: Numbers
+    ══════════════════════════════════════════════════════ */
+    #s11 .proof-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; flex: 1; margin-top: 28px; }
+    .proof-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 30px 34px; display: flex; flex-direction: column; gap: 12px; transition: border-color 200ms, box-shadow 200ms; }
+    .proof-card:hover { border-color: oklch(0.78 0.13 263 / 0.35); box-shadow: 0 0 28px oklch(0.522 0.267 263.3 / 0.08); }
+    .proof-card .pc-stat { font-family: var(--mono); font-size: 52px; font-weight: 700; color: var(--primary-ink); line-height: 1; }
+    .proof-card .pc-lbl { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+    .proof-card .pc-body { font-size: 16px; color: var(--muted); line-height: 1.55; margin-top: 4px; }
+    .proof-card .pc-body strong { color: var(--ink); }
+    .proof-card .pc-body code { font-family: var(--mono); font-size: 12px; color: var(--primary-ink); background: var(--surface-2); padding: 2px 7px; border-radius: 4px; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 12: Rubric
+    ══════════════════════════════════════════════════════ */
+    #s12 .rubric-wrap { flex: 1; margin-top: 28px; display: flex; flex-direction: column; }
+    .rub-hdr { display: grid; grid-template-columns: 200px 80px 1fr; gap: 32px; padding-bottom: 14px; border-bottom: 1px solid var(--border-s); font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.07em; text-transform: uppercase; }
+    .rub-row { display: grid; grid-template-columns: 200px 80px 1fr; gap: 32px; align-items: start; padding: 18px 0; border-top: 1px solid var(--border); }
+    .rub-row:first-child { border-top: none; }
+    .rub-row .rc { font-size: 16px; font-weight: 700; color: var(--ink); }
+    .rub-row .rw { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--primary-ink); }
+    .rub-row .rb { font-size: 15px; color: var(--muted); line-height: 1.5; }
+    .rub-row .rb strong { color: var(--ink); }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 13: Closing
+    ══════════════════════════════════════════════════════ */
+    #s13 {
+      align-items: center; justify-content: center; text-align: center;
+      background: radial-gradient(ellipse 60% 60% at 50% 110%, oklch(0.522 0.267 263.3 / 0.09) 0%, var(--bg) 60%);
+    }
+    #s13 .close-mark { display: flex; align-items: center; justify-content: center; gap: 28px; margin-bottom: 28px; }
+    #s13 .close-mark .vb { width: 84px; height: 84px; border-radius: 22px; background: var(--primary); color: var(--on-primary); font-size: 40px; font-weight: 900; display: grid; place-items: center; box-shadow: 0 0 64px oklch(0.522 0.267 263.3 / 0.45); }
+    #s13 .close-mark .cn { font-size: 78px; font-weight: 900; letter-spacing: -0.05em; line-height: 1; }
+    #s13 .close-tagline { font-size: 24px; color: var(--muted); max-width: 720px; line-height: 1.5; margin: 0 auto 44px; }
+    #s13 .close-tagline .hi { color: var(--primary-ink); font-weight: 600; }
+    #s13 .close-chips { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 40px; }
+    .close-chip { display: flex; flex-direction: column; gap: 4px; align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 24px; }
+    .close-chip .ck { font-family: var(--mono); font-size: 10px; color: var(--faint); letter-spacing: 0.06em; text-transform: uppercase; }
+    .close-chip .cv { font-family: var(--mono); font-size: 14px; color: var(--primary-ink); }
+    #s13 .close-status { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 22px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+    #s13 .close-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--risk-low); box-shadow: 0 0 6px var(--risk-low); animation: blink 2s ease-in-out infinite; }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 14: Contracts & Addresses
+    ══════════════════════════════════════════════════════ */
+    #s14 .contracts-grid { display: grid; grid-template-columns: 1.1fr 1.1fr 0.6fr 0.85fr; gap: 16px; flex: 1; margin-top: 28px; align-items: start; }
+    .cg-group { display: flex; flex-direction: column; gap: 10px; }
+    .cg-label { font-family: var(--mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 2px; }
+    .cg-label.v2l { color: var(--v2); }
+    .cg-label.v1l { color: var(--v1); }
+    .cg-label.brl { color: var(--bridge); }
+    .cg-label.rcl { color: var(--primary-ink); }
+    .cg-row { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; display: flex; flex-direction: column; gap: 5px; }
+    .cg-row.v2r { border-color: oklch(0.72 0.17 152 / 0.25); }
+    .cg-row.v1r { border-color: oklch(0.78 0.13 263 / 0.25); }
+    .cg-row.brr { border-color: oklch(0.80 0.15 85 / 0.25); }
+    .cg-row.rcr { border-color: oklch(0.78 0.13 263 / 0.20); }
+    .cg-row .cr-name { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--ink); }
+    .cg-row .cr-addr { font-family: var(--mono); font-size: 11px; color: var(--faint); letter-spacing: 0.02em; }
+    .cg-row .cr-role { font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .cg-row .cr-chain { font-family: var(--mono); font-size: 10px; color: var(--faint); margin-top: 2px; }
+    #s14 .contract-links { display: flex; gap: 12px; margin-top: 20px; flex-shrink: 0; }
+    .ct-link { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 18px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .ct-link .ctl-dot { width: 6px; height: 6px; border-radius: 50%; }
+    .ct-link.uni .ctl-dot { background: var(--primary-ink); }
+    .ct-link.rsc .ctl-dot { background: var(--v2); }
+
+    /* ══════════════════════════════════════════════════════
+       SLIDE 15: Call to Action
+    ══════════════════════════════════════════════════════ */
+    #s15 {
+      background: radial-gradient(ellipse 55% 60% at 50% 100%, oklch(0.522 0.267 263.3 / 0.08) 0%, var(--bg) 60%);
+    }
+    #s15 .cta-layout { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; margin-top: 28px; align-items: start; }
+    #s15 .cta-tagline { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; text-wrap: balance; flex-shrink: 0; }
+    #s15 .cta-tagline .acc { color: var(--primary-ink); }
+    #s15 .cta-sub { font-size: 17px; color: var(--muted); margin-top: 10px; flex-shrink: 0; }
+    .cta-col-title { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--faint); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+    .cta-steps { display: flex; flex-direction: column; gap: 10px; }
+    .cta-step { display: flex; gap: 14px; align-items: flex-start; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .cta-step .cs-num { width: 24px; height: 24px; border-radius: 50%; background: oklch(0.522 0.267 263.3 / 0.15); border: 1px solid oklch(0.522 0.267 263.3 / 0.3); display: grid; place-items: center; flex-shrink: 0; font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--primary-ink); margin-top: 1px; }
+    .cta-step .cs-body .cs-cmd { font-family: var(--mono); font-size: 12px; color: var(--primary-ink); margin-bottom: 3px; }
+    .cta-step .cs-body .cs-lbl { font-size: 13px; color: var(--muted); line-height: 1.4; }
+    .cta-links { display: flex; flex-direction: column; gap: 10px; }
+    .cta-link-row { display: flex; gap: 12px; align-items: center; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+    .cta-link-row .cl-icon { width: 28px; height: 28px; border-radius: 7px; background: var(--surface-2); display: grid; place-items: center; flex-shrink: 0; font-family: var(--mono); font-size: 10px; color: var(--muted); font-weight: 700; }
+    .cta-link-row .cl-body .cl-name { font-size: 14px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .cta-link-row .cl-body .cl-val { font-family: var(--mono); font-size: 11px; color: var(--faint); }
+    #s15 .cta-bottom { display: flex; align-items: center; gap: 16px; margin-top: 20px; flex-shrink: 0; }
+    .cta-status-pill { display: inline-flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 22px; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+    .cta-status-pill .sp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--risk-low); box-shadow: 0 0 6px var(--risk-low); animation: blink 2s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<div id="stage">
+ <div id="deck">
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 1: Title
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide active" id="s1">
+    <div class="left">
+      <div class="wordmark ai" style="--d:50ms">
+        <div class="v-icon">V</div>
+        <span class="name">Veritas Protocol</span>
+      </div>
+      <p class="tagline ai" style="--d:120ms">Provenance-Aware<br>Impermanent Loss Protection</p>
+      <p class="sub ai" style="--d:200ms">
+        A Uniswap v4 hook that converts content-authenticity data into an on-chain
+        Dilution Risk Score, then uses it to gate IP tokenization and calibrate
+        LP fee protection across the full creator lifecycle.
+      </p>
+      <div class="meta-row ai" style="--d:300ms">
+        <div class="meta-item">
+          <span class="k">EVENT</span>
+          <span class="v">UHI9 Hookathon</span>
+        </div>
+        <div class="meta-item">
+          <span class="k">NETWORK</span>
+          <span class="v">Unichain Sepolia (1301)</span>
+        </div>
+        <div class="meta-item">
+          <span class="k">TEAM</span>
+          <span class="v">Scientivan · 2026</span>
+        </div>
+      </div>
+    </div>
+    <div class="right">
+      <svg viewBox="0 0 440 460" fill="none" xmlns="http://www.w3.org/2000/svg" width="440" height="460" class="ai scale-in" style="--d:150ms">
+        <path d="M 72 320 A 168 168 0 0 1 368 320" stroke="oklch(0.275 0 0)" stroke-width="22" stroke-linecap="round"/>
+        <path class="draw-path" style="--d:400ms" d="M 72 320 A 168 168 0 0 1 176 104" stroke="oklch(0.72 0.17 152)" stroke-width="22" stroke-linecap="round"/>
+        <path class="draw-path" style="--d:550ms" d="M 176 104 A 168 168 0 0 1 264 104" stroke="oklch(0.80 0.15 85)" stroke-width="22" stroke-linecap="round"/>
+        <path class="draw-path" style="--d:700ms" d="M 264 104 A 168 168 0 0 1 368 320" stroke="oklch(0.62 0.21 25)" stroke-width="22" stroke-linecap="round"/>
+        <line x1="72" y1="320" x2="94" y2="305" stroke="oklch(0.34 0 0)" stroke-width="2"/>
+        <line x1="220" y1="74" x2="220" y2="98" stroke="oklch(0.34 0 0)" stroke-width="2"/>
+        <line x1="368" y1="320" x2="346" y2="305" stroke="oklch(0.34 0 0)" stroke-width="2"/>
+        <text x="52" y="352" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="oklch(0.72 0.17 152)">LOW</text>
+        <text x="220" y="62" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="oklch(0.80 0.15 85)">MID</text>
+        <text x="388" y="352" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="13" fill="oklch(0.62 0.21 25)">HIGH</text>
+        <text x="220" y="260" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="60" font-weight="700" fill="oklch(0.975 0 0)">DRS</text>
+        <text x="220" y="298" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" fill="oklch(0.74 0 0)">Dilution Risk Score</text>
+        <g id="gauge-needle" style="transform-origin:220px 250px; transform:rotate(0deg); transition:transform 1.2s cubic-bezier(0.16,1,0.3,1);">
+          <line x1="220" y1="250" x2="100" y2="256" stroke="oklch(0.975 0 0)" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="220" cy="250" r="9" fill="oklch(0.975 0 0)"/>
+        </g>
+        <rect x="120" y="388" width="200" height="48" rx="10" fill="oklch(0.185 0 0)" stroke="oklch(0.275 0 0)" stroke-width="1"/>
+        <text x="162" y="418" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" font-weight="700" fill="oklch(0.78 0.13 263)">D</text>
+        <text x="192" y="418" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" fill="oklch(0.74 0 0)">duplicate</text>
+        <text x="256" y="418" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" font-weight="700" fill="oklch(0.78 0.13 263)">A</text>
+        <text x="284" y="418" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="15" fill="oklch(0.74 0 0)">AI risk</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 2: Problem (unified V1+V2 narrative)
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s2">
+    <div class="prob-head">
+      <h2 class="ai" style="--d:60ms">Creators can't monetize.<br>LPs can't invest.</h2>
+      <p class="sub ai" style="--d:130ms">Five structural failures. The infrastructure is missing.</p>
+    </div>
+
+    <div class="data-chips ai" style="--d:200ms">
+      <div class="data-chip dc-amber">
+        <div class="dc-num">$250B+</div>
+        <div class="dc-lbl">Creator economy size; no on-chain capital infrastructure exists for it</div>
+        <div class="dc-src">Goldman Sachs · 2023</div>
+      </div>
+      <div class="data-chip dc-blue">
+        <div class="dc-num">$180B</div>
+        <div class="dc-lbl">Global IP licensing revenue per year, mostly captured by intermediaries</div>
+        <div class="dc-src">WIPO / ICC · 2024</div>
+      </div>
+      <div class="data-chip dc-green">
+        <div class="dc-num">~50%</div>
+        <div class="dc-lbl">Uniswap v3 LPs earned negative returns due to impermanent loss</div>
+        <div class="dc-src">Bancor divergence-loss study · 2022</div>
+      </div>
+      <div class="data-chip dc-red">
+        <div class="dc-num">$8.9B</div>
+        <div class="dc-lbl">NFT wash-trading volume in 2022; no origination gate ever existed</div>
+        <div class="dc-src">Chainalysis Crypto Crime · 2023</div>
+      </div>
+    </div>
+
+    <div class="prob-rows">
+      <div class="prob-row step">
+        <span class="pnum mono">01</span>
+        <div class="ptitle">Creators locked out of their own IP revenue</div>
+        <div class="pdesc">The $250B creator economy has no trustless capital rail. Royalties route through intermediaries who take the majority. No on-chain mechanism lets a creator raise capital from original work without ceding control.</div>
+      </div>
+      <div class="prob-row step">
+        <span class="pnum mono">02</span>
+        <div class="ptitle">No fair-launch standard for IP tokenization</div>
+        <div class="pdesc">Existing launchpads allow insider allocation, rug pulls, and no enforced royalties. Creators who tokenize their work have no trustless protection after the initial sale.</div>
+      </div>
+      <div class="prob-row step">
+        <span class="pnum mono">03</span>
+        <div class="ptitle">Copied and AI content floods the market</div>
+        <div class="pdesc">Anyone can tokenize a copy, an AI replica, or plagiarized work. No on-chain gate blocks low-originality content from raising capital alongside genuine originals.</div>
+      </div>
+      <div class="prob-row step">
+        <span class="pnum mono">04</span>
+        <div class="ptitle">IL risk from content dilution is invisible on-chain</div>
+        <div class="pdesc">As copies multiply, the underlying asset loses scarcity. That loss is the main driver of price divergence in a content-asset pool. The AMM cannot see it, so it cannot price it.</div>
+      </div>
+      <div class="prob-row step">
+        <span class="pnum mono">05</span>
+        <div class="ptitle">LPs cannot enter a market they cannot underwrite</div>
+        <div class="pdesc">Without a priced dilution risk, liquidity providers have no rational basis to commit capital to content pools. TVL in this category is essentially zero. No creator can graduate to deep liquidity.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 3: Transition (pivot from problem to solution)
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s3">
+    <div class="trans-inner">
+      <p class="trans-eyebrow ai" style="--d:50ms">Five failures. One system.</p>
+      <div class="trans-main ai" style="--d:120ms">
+        Two broken markets.<br><span class="hi">One missing primitive.</span>
+      </div>
+      <div class="trans-divider ai" style="--d:240ms"></div>
+      <p class="trans-sub ai" style="--d:320ms">
+        A trustless launchpad for creators. A live dilution signal for LPs.<br>
+        The same system. One score connects them.
+      </p>
+      <div class="trans-chips ai" style="--d:440ms">
+        <div class="trans-chip v1-chip">
+          <span class="tc-dot"></span>
+          System V1: IP Launchpad
+        </div>
+        <div class="trans-chip br-chip">
+          <span class="tc-dot"></span>
+          Bridge: IPLaunchRegistry
+        </div>
+        <div class="trans-chip v2-chip">
+          <span class="tc-dot"></span>
+          System V2: DRS Oracle
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 4: V1: IP Launchpad
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s4">
+    <div class="ai" style="--d:40ms"><span class="system-badge v1">System V1</span></div>
+    <div class="slide-title ai v1c" style="--d:100ms; margin-top:16px">IP Tokenization Launchpad</div>
+    <div class="v1-layout">
+      <div>
+        <div class="v1-phase-list">
+          <div class="v1-phase ai" style="--d:180ms">
+            <div class="ph-num">1</div>
+            <div class="ph-body">
+              <div class="ph-title">Mint ERC-20 IP Token</div>
+              <div class="ph-desc">Creator deploys a named token via IPTokenFactory. Fixed supply: 60% curve / 30% LP / 10% creator. No insider allocation possible.</div>
+              <div class="ph-code">IPTokenFactory.createToken(name, symbol, supply)</div>
+            </div>
+          </div>
+          <div class="v1-phase ai" style="--d:260ms">
+            <div class="ph-num">2</div>
+            <div class="ph-body">
+              <div class="ph-title">Open Bonding Curve</div>
+              <div class="ph-desc">VeritasHook v1 opens a quadratic fair-launch curve. Price rises as collectors buy. AMM math bypassed entirely via BeforeSwapDelta.</div>
+              <div class="ph-code">VeritasHook.initializeLaunchpad(poolId, hardCap)</div>
+            </div>
+          </div>
+          <div class="v1-phase ai" style="--d:340ms">
+            <div class="ph-num">3</div>
+            <div class="ph-body">
+              <div class="ph-title">Graduation: curve closes, v4 pool opens</div>
+              <div class="ph-desc">When hardCap is hit, liquidity locks permanently into a Uniswap v4 dynamic-fee pool. LP is protocol-owned; no rug possible.</div>
+              <div class="ph-code">Phase: LAUNCHPAD &#x2192; GRADUATED &#x2192; v4 pool active</div>
+            </div>
+          </div>
+          <div class="v1-phase ai" style="--d:420ms">
+            <div class="ph-num">4</div>
+            <div class="ph-body">
+              <div class="ph-title">Ongoing royalties</div>
+              <div class="ph-desc">0.20% of every swap on the graduated v4 pool routes to the creator. Enforced inside afterSwap. No opt-out, no bypass, perpetual.</div>
+              <div class="ph-code">VeritasHook.pendingRoyalties[creator]</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="v1-right">
+        <div class="v1-curve-box ai from-right" style="--d:200ms">
+          <div class="v1-curve-label">Bonding curve: quadratic fair launch</div>
+          <svg viewBox="0 0 320 180" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%">
+            <line x1="40" y1="20" x2="40" y2="155" stroke="oklch(0.275 0 0)" stroke-width="1"/>
+            <line x1="40" y1="155" x2="305" y2="155" stroke="oklch(0.275 0 0)" stroke-width="1"/>
+            <path class="draw-path" style="--d:400ms; stroke-dasharray:600; stroke-dashoffset:600" d="M 40 155 Q 120 155 180 110 Q 230 75 305 20" stroke="oklch(0.78 0.13 263)" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="240" y1="20" x2="240" y2="155" stroke="oklch(0.62 0.21 25)" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="241" y="38" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.62 0.21 25)">GRAD</text>
+            <text x="160" y="172" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="oklch(0.52 0 0)">tokens sold</text>
+            <text x="18" y="90" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="10" fill="oklch(0.52 0 0)" transform="rotate(-90 18 90)">price</text>
+          </svg>
+        </div>
+        <div class="v1-stats ai from-right" style="--d:300ms">
+          <div class="v1-stat"><div class="sv">60%</div><div class="sl">Curve allocation</div></div>
+          <div class="v1-stat"><div class="sv">30%</div><div class="sl">LP reserve</div></div>
+          <div class="v1-stat"><div class="sv">0.20%</div><div class="sl">Royalty / swap</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 5: V2: DRS Oracle
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s5">
+    <div class="ai" style="--d:40ms"><span class="system-badge v2">System V2</span></div>
+    <div class="slide-title ai v2c" style="--d:100ms; margin-top:16px">Dilution Risk Score Oracle</div>
+    <div class="v2-layout">
+      <div>
+        <div class="formula-box ai" style="--d:180ms">
+          <div class="formula-comment">// noisy-OR · computed off-chain, verified on-chain</div>
+          <div class="formula-main">DRS&nbsp;<span class="eq">=</span>&nbsp;1&nbsp;&#x2212;&nbsp;(1&#x2212;D)(1&#x2212;A)</div>
+        </div>
+        <div class="drs-breakdown">
+          <div class="drs-row ai" style="--d:280ms">
+            <div class="dsym">D</div>
+            <div class="dbody">
+              <div class="dname">Duplicate Density</div>
+              <div class="ddesc">DINOv2 cosine similarity vs sqlite-vec corpus. Rises as near-copies appear. Autonomously updated by Living DRS; no keeper needed.</div>
+            </div>
+          </div>
+          <div class="drs-row ai" style="--d:360ms">
+            <div class="dsym">A</div>
+            <div class="dbody">
+              <div class="dname">AI Replicability</div>
+              <div class="ddesc">Ensemble: SMOGY (primary) + ai-source-detector (5-class: SD/MJ/DALLE/real/other). Measures how replicable the content is by current generative tools.</div>
+            </div>
+          </div>
+        </div>
+        <div class="ai" style="--d:440ms; margin-top:16px; font-family:var(--mono); font-size:12px; color:var(--faint)">
+          Mekacher et al., Scientific Reports 2022. Rarer assets carry lower IL. Peer-reviewed grounding for the fee model.
+        </div>
+      </div>
+      <div class="v2-right">
+        <div style="font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:0.06em;text-transform:uppercase;margin-bottom:10px;" class="ai" style="--d:160ms">Oracle pipeline</div>
+        <div class="pipeline-item ai" style="--d:220ms">
+          <div class="pi-icon">IN</div>
+          <div><div class="pi-name">Image submitted</div><div class="pi-desc">Creator uploads via Next.js frontend. Pinned to IPFS via Pinata (real CIDv1 sha256).</div></div>
+        </div>
+        <div class="pipeline-connector ai" style="--d:260ms"></div>
+        <div class="pipeline-item ai" style="--d:300ms">
+          <div class="pi-icon">AI</div>
+          <div><div class="pi-name">DINOv2 + SMOGY + ai-source-detector</div><div class="pi-desc">Off-chain oracle computes D and A. Three independent operators each sign.</div></div>
+        </div>
+        <div class="pipeline-connector ai" style="--d:340ms"></div>
+        <div class="pipeline-item ai" style="--d:380ms">
+          <div class="pi-icon">SIG</div>
+          <div><div class="pi-name">2-of-3 EIP-712 quorum</div><div class="pi-desc">VeritasOracle verifies. Single-sig submission reverts. Only quorum-validated scores land on-chain.</div></div>
+        </div>
+        <div class="pipeline-connector ai" style="--d:420ms"></div>
+        <div class="pipeline-item ai" style="--d:460ms">
+          <div class="pi-icon">ON</div>
+          <div><div class="pi-name">VeritasRegistry stores score</div><div class="pi-desc">getCurrentDRS(attestationId) readable by any contract. Used by the gate AND the dynamic fee.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 6: Bridge: V1 and V2 connection
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s6">
+    <div class="ai" style="--d:40ms"><span class="system-badge br">IPLaunchRegistry</span></div>
+    <div class="slide-title ai" style="--d:100ms; margin-top:16px">
+      V1 and V2 <span class="accent">do not run in parallel.</span><br>
+      <span style="font-size:36px;color:var(--muted);font-weight:600;">V2 is the prerequisite and the ongoing guardian of V1.</span>
+    </div>
+    <div class="bridge-layout">
+      <div class="bridge-side v2s ai from-left" style="--d:200ms">
+        <div class="bs-tag">System V2</div>
+        <div class="bs-name">DRS Oracle</div>
+        <div class="bs-body">Computes DRS off-chain, stores it on-chain. Makes the content's authenticity risk readable by any contract.</div>
+        <div class="bs-items">
+          <div class="bs-item">DINOv2 duplicate scan</div>
+          <div class="bs-item">AI replicability ensemble</div>
+          <div class="bs-item">2-of-3 oracle quorum</div>
+          <div class="bs-item">getCurrentDRS() on VeritasRegistry</div>
+        </div>
+      </div>
+      <div class="bridge-center">
+        <div class="bridge-arrow ai" style="--d:280ms">&#x2192;</div>
+        <div class="bridge-gate ai scale-in" style="--d:320ms">
+          <div class="bg-name">IPLaunchRegistry</div>
+          <div class="bg-contract">0x9dF983&#x2026;ea2</div>
+          <div class="bg-rule">registerIP() reverts if<br><span class="hi">DRS &#x2265; 85%</span></div>
+        </div>
+        <div class="bridge-arrow ai" style="--d:400ms">&#x2192;</div>
+        <div class="bridge-loop-note ai" style="--d:480ms">
+          After graduation, V2 still active.<br>
+          <strong>getCurrentDRS() drives dynamic LP fee.</strong>
+        </div>
+      </div>
+      <div class="bridge-side v1s ai from-right" style="--d:200ms">
+        <div class="bs-tag">System V1</div>
+        <div class="bs-name">IP Launchpad</div>
+        <div class="bs-body">Raises capital via bonding curve and graduates into a locked Uniswap v4 pool with ongoing royalties.</div>
+        <div class="bs-items">
+          <div class="bs-item">Mint ERC-20 IP token</div>
+          <div class="bs-item">Open fair-launch curve</div>
+          <div class="bs-item">Graduate to v4 pool</div>
+          <div class="bs-item">VeritasHook v2: fee = f(DRS)</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 7: Code Spotlight
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s7">
+    <div class="slide-title ai" style="--d:50ms">
+      The implementation <span class="accent">speaks for itself.</span>
+    </div>
+    <p class="ai" style="--d:120ms; font-size:17px; color:var(--muted); margin-top:10px; margin-bottom:32px;">Three contracts. Three key functions. One coherent system.</p>
+    <div class="code-layout">
+
+      <div class="code-block step">
+        <div class="cb-head">
+          <span>DRS Formula</span>
+          <span class="cb-file">VeritasRegistry.sol</span>
+        </div>
+<pre style="background:transparent;border:none;padding:0;font-family:var(--mono);font-size:13px;line-height:1.75;color:oklch(0.84 0 0);white-space:pre"><span class="cc2">// noisy-OR combination: P(both safe) = (1-D)(1-A)</span>
+<span class="ck">function</span> <span class="cf">getCurrentDRS</span>(
+    <span class="ct">bytes32</span> id
+) <span class="ck">external view returns</span> (<span class="ct">uint256</span>) {
+    <span class="ct">uint256</span> d = <span class="cf">saturateD</span>(
+        records[id].dilutionCount
+    );
+<span class="hl-g2">    <span class="ck">return</span> <span class="cn2">10000</span> - (
+        (<span class="cn2">10000</span> - d) *
+        (<span class="cn2">10000</span> - records[id].aiScore)
+    ) / <span class="cn2">10000</span>;</span>
+}</pre>
+      </div>
+
+      <div class="code-block step">
+        <div class="cb-head">
+          <span>IP Gate</span>
+          <span class="cb-file">IPLaunchRegistry.sol</span>
+        </div>
+<pre style="background:transparent;border:none;padding:0;font-family:var(--mono);font-size:13px;line-height:1.75;color:oklch(0.84 0 0);white-space:pre"><span class="cc2">// Only original content can raise capital</span>
+<span class="ck">function</span> <span class="cf">registerIP</span>(
+    <span class="ct">bytes32</span> attestationId
+) <span class="ck">external</span> {
+    <span class="ct">uint256</span> drs = registry.<span class="cf">getCurrentDRS</span>(
+        attestationId
+    );
+<span class="hl-r2">    <span class="ck">if</span> (drs >= <span class="cn2">8500</span>)
+        <span class="ck">revert</span> <span class="cf">DRSTooHigh</span>(drs);</span>
+    <span class="cf">_register</span>(attestationId, <span class="cf">msg.sender</span>);
+}</pre>
+      </div>
+
+      <div class="code-block step">
+        <div class="cb-head">
+          <span>Dynamic LP Fee</span>
+          <span class="cb-file">VeritasHook.sol</span>
+        </div>
+<pre style="background:transparent;border:none;padding:0;font-family:var(--mono);font-size:13px;line-height:1.75;color:oklch(0.84 0 0);white-space:pre"><span class="cc2">// IL protection: fee rises with DRS automatically</span>
+<span class="ck">function</span> <span class="cf">_getDynamicFee</span>(
+    <span class="ct">PoolId</span> id
+) <span class="ck">internal view returns</span> (<span class="ct">uint24</span>) {
+    <span class="ct">uint256</span> drs = registry.<span class="cf">getCurrentDRS</span>(
+        poolToAttestation[id]
+    );
+<span class="hl-g2">    <span class="ck">return</span> <span class="ct">uint24</span>(baseFee +
+        (maxFee - baseFee) *
+        drs / <span class="cn2">10000</span>);</span>
+}</pre>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 8: Three Actors
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s8">
+    <div class="slide-title ai" style="--d:50ms">One score. <span class="accent">Three actors.</span> One lifecycle.</div>
+    <div class="actors-wrap">
+      <div class="actor cr ai from-left" style="--d:200ms">
+        <div class="ac-idx">Role 01</div>
+        <div class="ac-name">Creator</div>
+        <div class="ac-desc">Submits content, gets DRS attested, mints IP token, and opens the bonding-curve launchpad. Capital flows to them via royalties after graduation.</div>
+        <div class="ac-uses">
+          <div class="ac-use-row"><span class="use-badge v2b">V2</span><span class="use-text">Attests content, gets DRS score from oracle</span></div>
+          <div class="ac-use-row"><span class="use-badge brb">Gate</span><span class="use-text">registerIP() checks DRS &lt; 85% before IP goes live</span></div>
+          <div class="ac-use-row"><span class="use-badge v1b">V1</span><span class="use-text">Mints ERC-20, opens bonding curve, earns royalties</span></div>
+        </div>
+      </div>
+      <div class="actor co ai from-left" style="--d:300ms">
+        <div class="ac-idx">Role 02</div>
+        <div class="ac-name">Collector</div>
+        <div class="ac-desc">Buys IP tokens on the bonding curve. DRS is the trust signal before any purchase. Price discovery happens on the curve; at graduation, liquidity locks.</div>
+        <div class="ac-uses">
+          <div class="ac-use-row"><span class="use-badge v2b">V2</span><span class="use-text">DRS shown as trust signal before buying</span></div>
+          <div class="ac-use-row"><span class="use-badge v1b">V1</span><span class="use-text">Buys on quadratic curve via VeritasHook v1</span></div>
+        </div>
+      </div>
+      <div class="actor lp ai from-left" style="--d:400ms">
+        <div class="ac-idx">Role 03</div>
+        <div class="ac-name">LP</div>
+        <div class="ac-desc">Provides liquidity to graduated v4 dynamic-fee pools. The DRS-calibrated fee compensates for IL. As D rises autonomously, the fee rises automatically.</div>
+        <div class="ac-uses">
+          <div class="ac-use-row"><span class="use-badge v2b">V2</span><span class="use-text">Dynamic fee = f(getCurrentDRS). Living DRS keeps it current</span></div>
+          <div class="ac-use-row"><span class="use-badge v1b">V1</span><span class="use-text">Provides liquidity to graduated pool, earns fees</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 9: Architecture
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s9">
+    <div class="slide-title ai" style="--d:50ms">The <span class="accent">full stack.</span></div>
+    <div class="arch-layout">
+      <div>
+        <div class="arch-col-lbl on ai" style="--d:120ms">On-chain: Unichain Sepolia (1301)</div>
+        <div class="arch-items">
+          <div class="arch-card v2-card ai" style="--d:180ms"><div class="ac-nm">VeritasOracle</div><div class="ac-ds">2-of-3 EIP-712 quorum verifier. Rejects single-sig submissions.</div></div>
+          <div class="arch-card v2-card ai" style="--d:225ms"><div class="ac-nm">VeritasRegistry</div><div class="ac-ds">Stores pHash, blockHash, aiScore, dilutionCount. Exposes getCurrentDRS().</div></div>
+          <div class="arch-card br-card ai" style="--d:270ms"><div class="ac-nm">IPLaunchRegistry</div><div class="ac-ds">DRS gate: registerIP() reverts if DRS &gt;= 8500. The V1/V2 bridge.</div></div>
+          <div class="arch-card v1-card ai" style="--d:315ms"><div class="ac-nm">VeritasHook v1</div><div class="ac-ds">Bonding curve + graduation. Fair-launch quadratic price. 0.20% royalty on every swap.</div></div>
+          <div class="arch-card v1-card ai" style="--d:360ms"><div class="ac-nm">VeritasHook v2</div><div class="ac-ds">Dynamic LP fee = f(getCurrentDRS). Rises as dilutionCount rises. IL protection live.</div></div>
+          <div class="arch-card v2-card ai" style="--d:405ms"><div class="ac-nm">VeritasRegistryCallback</div><div class="ac-ds">Reactive callback target. Receives cross-chain dilution signals from Lasna RSC.</div></div>
+        </div>
+      </div>
+      <div class="arch-mid ai" style="--d:200ms">
+        <svg width="64" height="380" viewBox="0 0 64 380">
+          <line x1="32" y1="60" x2="32" y2="320" stroke="oklch(0.78 0.13 263)" stroke-width="1.5" stroke-dasharray="5 4"/>
+          <polygon points="24,65 40,65 32,45" fill="oklch(0.78 0.13 263)" opacity="0.6"/>
+          <text x="32" y="200" text-anchor="middle" font-family="'JetBrains Mono',monospace" font-size="9" fill="oklch(0.78 0.13 263)" transform="rotate(-90 32 200)">EIP-712 SIGNED</text>
+        </svg>
+      </div>
+      <div>
+        <div class="arch-col-lbl off ai" style="--d:120ms">Off-chain Oracle Service</div>
+        <div class="arch-items">
+          <div class="arch-card v2-card ai" style="--d:180ms"><div class="ac-nm">DINOv2 Embedder</div><div class="ac-ds">onnx-community/dinov2-with-registers-base. 768-dim cosine similarity vs sqlite-vec corpus.</div></div>
+          <div class="arch-card v2-card ai" style="--d:225ms"><div class="ac-nm">SMOGY + ai-source-detector</div><div class="ac-ds">Ensemble AI detector: SMOGY primary, ai-source-detector 5-class (SD/MJ/DALLE/real/other).</div></div>
+          <div class="arch-card v2-card ai" style="--d:270ms"><div class="ac-nm">2-of-3 Operator Quorum</div><div class="ac-ds">op1 DINOv2, op2 CLIP (independent embedder), op3 DINOv2-redundant. Each signs independently.</div></div>
+          <div class="arch-card v2-card ai" style="--d:315ms"><div class="ac-nm">IPFS via Pinata</div><div class="ac-ds">Content pinned at attest time. Keeper re-scores from CID. Real CIDv1 sha256.</div></div>
+          <div class="arch-card v2-card ai" style="--d:360ms"><div class="ac-nm">DilutionMonitorRSC</div><div class="ac-ds">Reactive Lasna (5318007). Subscribes to NewAttestation. Cross-chain callback; no keeper.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 10: Living DRS
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s10">
+    <div class="slide-title ai" style="--d:50ms">D updates itself. <span class="accent">No keeper.</span></div>
+    <div class="living-layout">
+      <div class="step-list">
+        <div class="step-item ai" style="--d:140ms">
+          <div class="sn">1</div>
+          <div class="sb">
+            <div class="st">Near-duplicate is attested</div>
+            <div class="sd">A second creator attests content with matching perceptual hash. VeritasRegistry emits NewAttestation.</div>
+            <div class="sc">event NewAttestation(bytes32 pHash, bytes32 attestationId)</div>
+          </div>
+        </div>
+        <div class="step-item ai" style="--d:230ms">
+          <div class="sn">2</div>
+          <div class="sb">
+            <div class="st">RSC detects it cross-chain</div>
+            <div class="sd">DilutionMonitorRSC on Reactive Lasna is subscribed. react() fires immediately, zero latency.</div>
+            <div class="sc">0xB44F024&#x2026;5C5d &#x00B7; Lasna (5318007)</div>
+          </div>
+        </div>
+        <div class="step-item ai" style="--d:320ms">
+          <div class="sn">3</div>
+          <div class="sb">
+            <div class="st">Callback increments dilutionCount</div>
+            <div class="sd">RSC emits Callback to VeritasRegistryCallback on Unichain. incrementDilutionCount fires.</div>
+            <div class="sc">0xa516891&#x2026;332a &#x00B7; Unichain Sepolia</div>
+          </div>
+        </div>
+        <div class="step-item ai" style="--d:410ms">
+          <div class="sn">4</div>
+          <div class="sb">
+            <div class="st">LP fee rises automatically</div>
+            <div class="sd">saturateD(dilutionCount) raises effectiveD. getCurrentDRS is higher. VeritasHook reads it on the next swap.</div>
+          </div>
+        </div>
+      </div>
+      <div class="living-proof ai from-right" style="--d:220ms">
+        <div style="font-family:var(--mono);font-size:13px;color:var(--muted)">// Proven live on testnet &#x00B7; 2026-06-06</div>
+        <div class="before-after">
+          <div class="ba-col">
+            <div class="ba-sect">Before copy attested</div>
+            <div class="ba-row"><span class="bl">DILUTION COUNT</span><span class="bv lo">0</span></div>
+            <div class="ba-row"><span class="bl">EFFECTIVE D</span><span class="bv lo">0.00</span></div>
+            <div class="ba-row"><span class="bl">DYNAMIC FEE</span><span class="bv lo">base</span></div>
+          </div>
+          <div class="ba-arr">&#x2192;</div>
+          <div class="ba-col">
+            <div class="ba-sect">After copy attested</div>
+            <div class="ba-row"><span class="bl">DILUTION COUNT</span><span class="bv hi">2</span></div>
+            <div class="ba-row"><span class="bl">EFFECTIVE D</span><span class="bv hi">0.60</span></div>
+            <div class="ba-row"><span class="bl">DYNAMIC FEE</span><span class="bv hi">elevated</span></div>
+          </div>
+        </div>
+        <div class="proof-pill">Proven live &#x00B7; DilutionIncremented on-chain</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--faint)">
+          Original: 0x7d07e4ea&#x2026;0a6<br>Copy: 0x0547799f&#x2026;21c
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 11: Numbers
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s11">
+    <div class="slide-title ai" style="--d:50ms">It <span class="accent">works.</span></div>
+    <div class="proof-grid">
+      <div class="proof-card ai" style="--d:140ms">
+        <div class="pc-stat"><span class="count-stat" data-target="81">0</span></div>
+        <div class="pc-lbl">Tests passing</div>
+        <div class="pc-body">Full Foundry suite: unit + integration + <strong>ReactiveIntegration.t.sol</strong> (8 cross-chain tests). Registry coverage 99%. Run: <code>forge test -vv</code></div>
+      </div>
+      <div class="proof-card ai" style="--d:220ms">
+        <div class="pc-stat"><span class="count-stat" data-target="5">0</span></div>
+        <div class="pc-lbl">Contracts live</div>
+        <div class="pc-body">Unichain Sepolia: VeritasOracle <code>0x45b3&#x2026;4bd3</code>, VeritasRegistry <code>0xe359&#x2026;d824</code>, VeritasHook <code>0x0Aaa&#x2026;60C4</code>, VeritasRegistryCallback <code>0xa516&#x2026;332a</code>, IPLaunchRegistry <code>0x9dF9&#x2026;ea2</code>.</div>
+      </div>
+      <div class="proof-card ai" style="--d:300ms">
+        <div class="pc-stat">2/3</div>
+        <div class="pc-lbl">Oracle quorum</div>
+        <div class="pc-body">Three independent operators, each signs DRS separately. <strong>Single-sig attest reverts on-chain</strong> (proven by test). No centralized oracle risk.</div>
+      </div>
+      <div class="proof-card ai" style="--d:380ms">
+        <div class="pc-stat" style="font-size:36px;padding-top:8px">cross-chain</div>
+        <div class="pc-lbl">Reactive Network RSC</div>
+        <div class="pc-body">DilutionMonitorRSC live on <strong>Lasna (5318007)</strong>. Callback raised dilutionCount 0 to 2 in one near-duplicate test; no cron, no keeper, no trust.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 12: Rubric
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s12">
+    <div class="slide-title ai" style="--d:50ms">Built for <span class="accent">the rubric.</span></div>
+    <div class="rubric-wrap">
+      <div class="rub-hdr ai" style="--d:100ms">
+        <span>Criteria</span><span>Weight</span><span>What we built</span>
+      </div>
+      <div class="rub-row step">
+        <div class="rc">Original Idea</div>
+        <div class="rw">30%</div>
+        <div class="rb"><strong>First v4 hook to price IL from off-chain content-authenticity data.</strong> DRS = noisy-OR(D, A) is novel in DeFi. Peer-reviewed grounding (Mekacher 2022).</div>
+      </div>
+      <div class="rub-row step">
+        <div class="rc">Unique Execution</div>
+        <div class="rw">25%</div>
+        <div class="rb"><strong>Living D via Reactive Network RSC (no keeper), 2-of-3 quorum, bonding-curve graduation, DRS gate, IL simulator.</strong> Two integrated systems, not one hook.</div>
+      </div>
+      <div class="rub-row step">
+        <div class="rc">Impact</div>
+        <div class="rw">20%</div>
+        <div class="rb"><strong>Unlocks the full creator economy lifecycle</strong> currently impossible to build safely: verified origination, fair-launch capital, trustworthy LP, all from one score.</div>
+      </div>
+      <div class="rub-row step">
+        <div class="rc">Functionality</div>
+        <div class="rw">15%</div>
+        <div class="rb"><strong>81 tests, 5 live contracts, proven cross-chain, real oracle with on-chain attest, real swaps on Unichain Sepolia.</strong> Not a demo: a working system.</div>
+      </div>
+      <div class="rub-row step">
+        <div class="rc">Presentation</div>
+        <div class="rw">10%</div>
+        <div class="rb">This deck, a 5-min demo video, DEMO.md with full golden-path walkthrough. On-chain proof replaces claims.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 13: Closing
+  ═══════════════════════════════════════════════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 13: Contracts & Addresses
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s13">
+    <div class="slide-title ai" style="--d:50ms">Deployed. <span class="accent">Verified. Live.</span></div>
+    <div class="contracts-grid">
+
+      <div class="cg-group ai" style="--d:120ms">
+        <div class="cg-label v2l">V2 Oracle System</div>
+        <div class="cg-row v2r">
+          <div class="cr-name">VeritasOracle</div>
+          <div class="cr-addr">0x45b327808f&#x2026;4bd3</div>
+          <div class="cr-role">2-of-3 EIP-712 quorum verifier. Single-sig reverts.</div>
+        </div>
+        <div class="cg-row v2r">
+          <div class="cr-name">VeritasRegistry</div>
+          <div class="cr-addr">0xe359bdB2cA&#x2026;d824</div>
+          <div class="cr-role">Stores A + D + dilutionCount. Exposes getCurrentDRS().</div>
+        </div>
+        <div class="cg-row v2r">
+          <div class="cr-name">VeritasRegistryCallback</div>
+          <div class="cr-addr">0xa516891eE1&#x2026;332a</div>
+          <div class="cr-role">Reactive callback receiver. Wired as dilutionUpdater.</div>
+        </div>
+        <div class="cg-row v2r">
+          <div class="cr-name">VeritasHook v2</div>
+          <div class="cr-addr">0x0AaAef1B31&#x2026;60C4</div>
+          <div class="cr-role">Dynamic LP fee = f(DRS). IL protection live on every swap.</div>
+        </div>
+      </div>
+
+      <div class="cg-group ai" style="--d:190ms">
+        <div class="cg-label v1l">V1 Launchpad System</div>
+        <div class="cg-row v1r">
+          <div class="cr-name">IPTokenFactory</div>
+          <div class="cr-addr">0xFB112b3AdF&#x2026;638c</div>
+          <div class="cr-role">Deploys creator ERC-20 IP tokens. Fixed 60/30/10 split.</div>
+        </div>
+        <div class="cg-row v1r">
+          <div class="cr-name">VeritasHook v1</div>
+          <div class="cr-addr">0xcecf19e772&#x2026;20cc</div>
+          <div class="cr-role">Bonding curve + graduation + 0.20% perpetual royalties.</div>
+        </div>
+        <div class="cg-row v1r">
+          <div class="cr-name">VeritasRegistry v1</div>
+          <div class="cr-addr">0x17c5e35D11&#x2026;fC8</div>
+          <div class="cr-role">Permissionless IP registry read by the bonding curve hook.</div>
+        </div>
+        <div class="cg-row v1r">
+          <div class="cr-name">Mock USDC (raise token)</div>
+          <div class="cr-addr">0xD977AD0334&#x2026;15a</div>
+          <div class="cr-role">Testnet USDC for launchpad buyers. Mintable on frontend.</div>
+        </div>
+      </div>
+
+      <div class="cg-group ai" style="--d:260ms">
+        <div class="cg-label brl">Bridge</div>
+        <div class="cg-row brr">
+          <div class="cr-name">IPLaunchRegistry</div>
+          <div class="cr-addr">0x9dF98317b0&#x2026;ea2</div>
+          <div class="cr-role">DRS gate: registerIP() reverts if DRS &ge; 85%. The V1/V2 bridge contract.</div>
+        </div>
+        <div class="cg-label brl" style="margin-top:14px">PoolManager</div>
+        <div class="cg-row brr">
+          <div class="cr-name">Uniswap v4 PoolManager</div>
+          <div class="cr-addr">0x00B036B58a&#x2026;62AC</div>
+          <div class="cr-role">Official Unichain Sepolia deployment.</div>
+        </div>
+      </div>
+
+      <div class="cg-group ai" style="--d:330ms">
+        <div class="cg-label rcl">Reactive Network</div>
+        <div class="cg-row rcr">
+          <div class="cr-name">DilutionMonitorRSC</div>
+          <div class="cr-addr">0xB44F024468&#x2026;5C5d</div>
+          <div class="cr-role">Subscribes to NewAttestation. Cross-chain callback with no keeper.</div>
+          <div class="cr-chain">Lasna (5318007)</div>
+        </div>
+        <div class="cg-label rcl" style="margin-top:14px">Live Pools</div>
+        <div class="cg-row rcr">
+          <div class="cr-name">Forest Scene (DRS 0)</div>
+          <div class="cr-addr">poolId 0xf937&#x2026;ff0e</div>
+          <div class="cr-role">Base fee 0.30%. Original content, no dilution.</div>
+        </div>
+        <div class="cg-row rcr">
+          <div class="cr-name">Living-D Original (DRS 0.68)</div>
+          <div class="cr-addr">poolId 0x0cb6&#x2026;0316</div>
+          <div class="cr-role">Elevated fee. dilutionCount raised 0&#x2192;2 by RSC live.</div>
+        </div>
+      </div>
+
+    </div>
+    <div class="contract-links ai" style="--d:420ms">
+      <div class="ct-link uni"><span class="ctl-dot"></span>sepolia.uniscan.xyz/address/&lt;addr&gt;</div>
+      <div class="ct-link rsc"><span class="ctl-dot"></span>lasna.reactscan.net/address/0xB44F&#x2026;5C5d</div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       SLIDE 15: Call to Action
+  ═══════════════════════════════════════════════════════════ -->
+  <section class="slide" id="s15">
+    <div class="cta-tagline ai" style="--d:50ms">
+      Run the demo.<br>Read the contracts.<br><span class="acc">Judge by what is on-chain.</span>
+    </div>
+    <p class="cta-sub ai" style="--d:130ms">Everything claimed here has a transaction hash.</p>
+    <div class="cta-layout">
+      <div>
+        <div class="cta-col-title ai" style="--d:190ms">Run it yourself</div>
+        <div class="cta-steps">
+          <div class="cta-step ai" style="--d:240ms">
+            <div class="cs-num">1</div>
+            <div class="cs-body">
+              <div class="cs-cmd">cd oracle &amp;&amp; npm run dev</div>
+              <div class="cs-lbl">Oracle service starts at localhost:8787. DINOv2 + SMOGY + ai-source-detector live.</div>
+            </div>
+          </div>
+          <div class="cta-step ai" style="--d:300ms">
+            <div class="cs-num">2</div>
+            <div class="cs-body">
+              <div class="cs-cmd">cd frontend &amp;&amp; npm run dev -- --webpack</div>
+              <div class="cs-lbl">Frontend at localhost:3000. Connect wallet to Unichain Sepolia (chainId 1301).</div>
+            </div>
+          </div>
+          <div class="cta-step ai" style="--d:360ms">
+            <div class="cs-num">3</div>
+            <div class="cs-body">
+              <div class="cs-cmd">Navigate to /launch &#x2192; click "Unique"</div>
+              <div class="cs-lbl">Watch real DRS score arrive from a live oracle. 2-of-3 badge confirms quorum. Attest on-chain.</div>
+            </div>
+          </div>
+          <div class="cta-step ai" style="--d:420ms">
+            <div class="cs-num">4</div>
+            <div class="cs-body">
+              <div class="cs-cmd">forge test -vv</div>
+              <div class="cs-lbl">81 tests pass. ReactiveIntegration.t.sol (8 cross-chain tests) included.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="cta-col-title ai" style="--d:190ms">Verify on-chain</div>
+        <div class="cta-links">
+          <div class="cta-link-row ai" style="--d:260ms">
+            <div class="cl-icon">REG</div>
+            <div class="cl-body">
+              <div class="cl-name">VeritasRegistry (source-verified)</div>
+              <div class="cl-val">0xe359bdB2cA1A152Ae62E2496F140ea192Ce0d824</div>
+            </div>
+          </div>
+          <div class="cta-link-row ai" style="--d:320ms">
+            <div class="cl-icon">HK</div>
+            <div class="cl-body">
+              <div class="cl-name">VeritasHook v2 (source-verified)</div>
+              <div class="cl-val">0x0AaAef1B312243EfaAD238fb53403dC5761d60C4</div>
+            </div>
+          </div>
+          <div class="cta-link-row ai" style="--d:380ms">
+            <div class="cl-icon">RSC</div>
+            <div class="cl-body">
+              <div class="cl-name">DilutionMonitorRSC (Lasna 5318007)</div>
+              <div class="cl-val">0xB44F024468dc78572D1Ad7b3f5Ce3A51408E5C5d</div>
+            </div>
+          </div>
+          <div class="cta-link-row ai" style="--d:440ms">
+            <div class="cl-icon">V1</div>
+            <div class="cl-body">
+              <div class="cl-name">VeritasHook v1 bonding curve</div>
+              <div class="cl-val">0xcecf19e7722e3b38b399785e00e13f7c3dcd20cc</div>
+            </div>
+          </div>
+          <div class="cta-link-row ai" style="--d:500ms">
+            <div class="cl-icon">GH</div>
+            <div class="cl-body">
+              <div class="cl-name">GitHub · contracts + oracle + frontend</div>
+              <div class="cl-val">github.com/Scientivan/VeritasProtocolv2</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-bottom ai" style="--d:560ms">
+      <div class="cta-status-pill"><span class="sp-dot"></span>Live on Unichain Sepolia &#x00B7; 81 tests &#x00B7; Reactive RSC proven &#x00B7; 5-min demo video available</div>
+    </div>
+  </section>
+
+ </div>
+</div>
+
+<!-- Nav -->
+<div id="nav">
+  <button id="btn-prev" disabled aria-label="Previous">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 3L5 8l5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+  <span id="counter">01 / 15</span>
+  <button id="btn-next" aria-label="Next">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  </button>
+</div>
+
+<div id="dots"></div>
+<div id="progress" style="width:6.67%"></div>
+<div id="hint">&#x2190; &#x2192; Space &#x00B7; click &#x00B7; F fullscreen &#x00B7; 1-9 jump</div>
+<button id="fsbtn" onclick="toggleFs()">&#x26F6; Full</button>
+
+<script>
+  const TOTAL = 15;
+  let current = 0;
+  let animating = false;
+
+  const slides  = [...document.querySelectorAll('.slide')];
+  const counter = document.getElementById('counter');
+  const btnPrev = document.getElementById('btn-prev');
+  const btnNext = document.getElementById('btn-next');
+  const progress = document.getElementById('progress');
+
+  function pad(n) { return String(n).padStart(2, '0'); }
+
+  /* ── Count-up ── */
+  function runCounters(slideEl) {
+    slideEl.querySelectorAll('.count-stat[data-target]').forEach(el => {
+      const end = parseInt(el.dataset.target, 10);
+      const dur = 1000;
+      let t0 = null;
+      function step(ts) {
+        if (!t0) t0 = ts;
+        const p = Math.min((ts - t0) / dur, 1);
+        const e = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.floor(e * end);
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = end;
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  /* ── Gauge needle ── */
+  function animateGauge() {
+    const needle = document.getElementById('gauge-needle');
+    if (!needle) return;
+    needle.style.transform = 'rotate(-140deg)';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        needle.style.transform = 'rotate(-30deg)';
+      });
+    });
+  }
+
+  /* ── Step system ── */
+  function getSteps(idx) {
+    return [...slides[idx].querySelectorAll('.step')];
+  }
+
+  function advanceStep() {
+    const steps = getSteps(current);
+    const next = steps.find(s => !s.classList.contains('on'));
+    if (next) { next.classList.add('on'); return true; }
+    return false;
+  }
+
+  function retreatStep() {
+    const steps = getSteps(current);
+    const revealed = steps.filter(s => s.classList.contains('on'));
+    if (revealed.length > 0) {
+      revealed[revealed.length - 1].classList.remove('on');
+      return true;
+    }
+    return false;
+  }
+
+  function resetSteps(idx) {
+    getSteps(idx).forEach(s => s.classList.remove('on'));
+  }
+
+  /* ── Navigation ── */
+  function goNext() {
+    if (animating) return;
+    if (advanceStep()) return;
+    go(current + 1);
+  }
+
+  function goPrev() {
+    if (animating) return;
+    if (retreatStep()) return;
+    go(current - 1);
+  }
+
+  function go(idx) {
+    if (animating) return;
+    const next = Math.max(0, Math.min(TOTAL - 1, idx));
+    if (next === current) return;
+    animating = true;
+
+    const prev = current;
+    const dir  = next > prev ? 1 : -1;
+
+    slides[prev].classList.remove('active');
+    slides[prev].classList.add('exit');
+
+    resetSteps(next);
+
+    slides[next].style.transform = dir > 0 ? 'translateX(80px)' : 'translateX(-80px)';
+    slides[next].style.transition = 'none';
+
+    slides[next].querySelectorAll('.ai').forEach(el => {
+      el.style.animation = 'none';
+    });
+
+    slides[next].offsetHeight;
+
+    slides[next].querySelectorAll('.ai').forEach(el => {
+      el.style.animation = '';
+      el.style.opacity   = '';
+      el.style.transform = '';
+    });
+
+    slides[next].style.transition = '';
+    slides[next].classList.add('active');
+
+    current = next;
+    updateUI();
+
+    if (current === 0)  setTimeout(animateGauge, 800);
+    if (current === 10) setTimeout(() => runCounters(slides[10]), 400);
+
+    setTimeout(() => {
+      slides[prev].classList.remove('exit');
+      slides[prev].style.transform = '';
+      animating = false;
+    }, 420);
+  }
+
+  function updateUI() {
+    counter.textContent = `${pad(current + 1)} / ${pad(TOTAL)}`;
+    btnPrev.disabled = current === 0;
+    btnNext.disabled = current === TOTAL - 1;
+    progress.style.width = `${((current + 1) / TOTAL) * 100}%`;
+    document.querySelectorAll('.dot-item').forEach((d, i) => {
+      d.classList.toggle('on', i === current);
+    });
+  }
+
+  /* ── Build dot nav ── */
+  const dotsEl = document.getElementById('dots');
+  for (let i = 0; i < TOTAL; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot-item' + (i === 0 ? ' on' : '');
+    d.addEventListener('click', () => { if (!animating) go(i); });
+    dotsEl.appendChild(d);
+  }
+
+  /* ── Initialize gauge ── */
+  setTimeout(animateGauge, 900);
+
+  /* ── Controls ── */
+  btnPrev.addEventListener('click', goPrev);
+  btnNext.addEventListener('click', goNext);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); goNext(); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goPrev(); }
+    if (e.key === 'Home') go(0);
+    if (e.key === 'End')  go(TOTAL - 1);
+    if (e.key.toLowerCase() === 'f') toggleFs();
+    if (e.key >= '1' && e.key <= '9') {
+      const i = parseInt(e.key) - 1;
+      if (i < TOTAL) go(i);
+    }
+  });
+
+  /* ── Click deck to advance ── */
+  document.getElementById('deck').addEventListener('click', e => {
+    if (e.target.closest('#nav') || e.target.closest('#dots') || e.target.closest('#fsbtn')) return;
+    goNext();
+  });
+
+  /* ── Swipe ── */
+  let tx = 0;
+  document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = tx - e.changedTouches[0].clientX;
+    if (Math.abs(dx) > 48) { if (dx > 0) goNext(); else goPrev(); }
+  }, { passive: true });
+
+  /* ── Fullscreen ── */
+  function toggleFs() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {});
+    else document.exitFullscreen();
+  }
+  document.addEventListener('fullscreenchange', () => {
+    document.getElementById('fsbtn').textContent =
+      document.fullscreenElement ? '&#x2715; Exit' : '&#x26F6; Full';
+  });
+
+  /* ── Scale deck to viewport ── */
+  function scale() {
+    const deck = document.getElementById('deck');
+    const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    const l = (window.innerWidth  - 1920 * s) / 2;
+    const t = (window.innerHeight - 1080 * s) / 2;
+    deck.style.transform = `scale(${s})`;
+    deck.style.left = l + 'px';
+    deck.style.top  = t + 'px';
+  }
+
+  scale();
+  window.addEventListener('resize', scale);
+</script>
+
+<!--
+  EXPORT AS PDF:
+  Chrome -> Cmd+P -> Save as PDF -> Landscape A3 -> Background graphics ON.
+-->
+</html>

@@ -5,62 +5,129 @@ import {calibrateAi} from "./calibration.js";
 export {calibrateAi};
 
 /**
- * AI-replicability (A) for images. SMOGY-Ai-images-detector, ONNX export curated
- * for transformers.js - runs natively in Node, no Python sidecar.
+ * AI-replicability (A) for images. Two independent ONNX classifiers are combined
+ * so that SMOGY's known ~30-50% false-positive rate on portraits is dampened:
  *
- * IMPORTANT (verified empirically, 2026-06): this ONNX export ships an INVERTED
- * id2label. Across 6 controlled samples (3 real photos, 3 StyleGAN faces) the
- * raw label "artificial" fired ~1.0 on REAL photos and "human" fired ~1.0 on AI
- * images - i.e. the two class names are swapped relative to training. We correct
- * for it here: P(AI-generated) = score(raw label "human"). The mapping is pinned
- * and asserted so a future re-export that fixes the labels is caught loudly.
+ *  - SMOGY (primary): bimodal, fires at 0.99+ or near-0. Inverted labels: raw
+ *    "human" = AI-generated, "artificial" = real (verified empirically, 2026-06).
  *
- * OVER-FIRE CALIBRATION (measured 2026-06 over 10 real photos): the detector is
- * bimodal and overconfident - ~30% of genuine photos were flagged AI at ~1.0
- * (ids 100, 433, 1025). Confident-wrong outputs cannot be removed by post-hoc
- * calibration of a single model (the real fix is an ensemble), but temperature
- * scaling (`calibrateAi`) corrects the overconfidence on borderline cases and
- * lets operators dial down a single unreliable detector's influence. A stays a
- * SOFT signal regardless: it only nudges DRS via noisy-OR, and the trustless
- * on-chain D floor bounds how far any single signal can move the fee.
+ *  - ai-source-detector (confirmation): 5-class (stable_diffusion/midjourney/
+ *    dalle/real/other_ai). When a real AI-generated image is uploaded, one of
+ *    the AI classes typically dominates (> 0.50). For real photos the distribution
+ *    is flat — no single AI class exceeds 0.50. This "dominance" threshold is
+ *    used to confirm or dampen SMOGY's signal.
+ *
+ *  - Deep-Fake-Detector excluded: empirically outputs 0.65-0.73 "Deepfake"
+ *    for ALL images tested — no discriminative power, would only add noise.
+ *
+ * Combination logic (priority order):
+ *  1. SMOGY says real (< 0.30)           → A = SMOGY (landscape/scene ≈ 0-3%)
+ *  2. SMOGY fires (> 0.75) AND source "real" class > 0.20
+ *                                         → "real-portrait" mode, A = SMOGY × 0.15
+ *                                           (false-positive dampen for real portraits)
+ *  3. SMOGY fires (> 0.75) AND max AI class > 0.45
+ *                                         → "consensus-ai", A = average of both
+ *  4. SMOGY fires (> 0.75) uncertain     → A = SMOGY × 0.40
+ *  5. Middle range                        → weighted blend
  */
 
-const MODEL_ID = "onnx-community/SMOGY-Ai-images-detector-ONNX";
-// Raw model label whose score (due to the inverted export) is the true P(AI).
-const AI_RAW_LABEL = "human";
-const REAL_RAW_LABEL = "artificial";
+const SMOGY_ID = "onnx-community/SMOGY-Ai-images-detector-ONNX";
+const SOURCE_ID = "onnx-community/ai-source-detector-ONNX";
 
-let clfPromise: Promise<ImageClassificationPipeline> | null = null;
+export const IMAGE_AI_MODEL_ID = `ensemble(${SMOGY_ID}, ${SOURCE_ID})`;
 
-function getClassifier(): Promise<ImageClassificationPipeline> {
-  if (!clfPromise) {
-    clfPromise = pipeline("image-classification", MODEL_ID, {dtype: "q8"}) as Promise<ImageClassificationPipeline>;
-  }
-  return clfPromise;
+type Clf = Promise<ImageClassificationPipeline>;
+let smogyP: Clf | null = null;
+let sourceP: Clf | null = null;
+
+function getSmogy(): Clf {
+  if (!smogyP) smogyP = pipeline("image-classification", SMOGY_ID, {dtype: "q8"}) as Clf;
+  return smogyP;
+}
+function getSource(): Clf {
+  if (!sourceP) sourceP = pipeline("image-classification", SOURCE_ID, {dtype: "q8"}) as Clf;
+  return sourceP;
 }
 
-/** Returns P(AI-generated) in [0,1] and the model id used. */
-export async function imageAiScore(image: RawImage): Promise<{a: number; source: string}> {
-  const clf = await getClassifier();
-  const out = (await clf(image, {top_k: 5})) as {label: string; score: number}[];
-  const results = Array.isArray(out) ? out : [out];
+type LabelScore = {label: string; score: number}[];
 
-  const labels = new Set(results.map((r) => r.label.toLowerCase()));
-  if (!labels.has(AI_RAW_LABEL) || !labels.has(REAL_RAW_LABEL)) {
-    // The export's label set changed - refuse to guess, degrade to neutral.
-    return {a: 0, source: `${MODEL_ID} (unexpected labels: ${[...labels].join("/")})`};
+async function runClassifier(clf: ImageClassificationPipeline, image: RawImage): Promise<LabelScore> {
+  const out = await clf(image, {top_k: 5});
+  return (Array.isArray(out) ? out : [out]) as LabelScore;
+}
+
+/**
+ * SMOGY P(AI): raw label "human" = AI (inverted export). Returns calibrated P(AI).
+ */
+async function smogyScore(image: RawImage): Promise<{pAi: number; raw: string}> {
+  const clf = await getSmogy();
+  const results = await runClassifier(clf, image);
+  const aiRaw = results.find((r) => r.label.toLowerCase() === "human")?.score ?? 0;
+  const realRaw = results.find((r) => r.label.toLowerCase() === "artificial")?.score ?? 0;
+  if (aiRaw === 0 && realRaw === 0) return {pAi: 0, raw: "unexpected labels"};
+  const pAi = calibrateAi(aiRaw, realRaw);
+  return {pAi, raw: `smogy_raw=${aiRaw.toFixed(3)}`};
+}
+
+/**
+ * ai-source-detector: returns max AI class score (SD/MJ/DALL-E/other).
+ * For real AI-generated images one class dominates (> 0.50).
+ * For real photos the distribution is flat (max < 0.50).
+ */
+async function sourceScore(image: RawImage): Promise<{maxAiClass: number; realClass: number; raw: string}> {
+  const clf = await getSource();
+  const results = await runClassifier(clf, image);
+  const aiClasses = results.filter((r) => r.label.toLowerCase() !== "real");
+  const maxAiClass = Math.max(0, ...aiClasses.map((r) => r.score));
+  const realClass = results.find((r) => r.label.toLowerCase() === "real")?.score ?? 0;
+  const top = results[0];
+  return {maxAiClass, realClass, raw: `source_top=${top?.label}(${top?.score.toFixed(3)}) real=${realClass.toFixed(3)}`};
+}
+
+/**
+ * Combined A score. SMOGY is the primary signal; ai-source dominance confirms.
+ * Capped by imageAiMaxContribution (default 0.9).
+ */
+export async function imageAiScore(image: RawImage): Promise<{a: number; source: string}> {
+  const [sm, src] = await Promise.all([smogyScore(image), sourceScore(image)]);
+
+  const {pAi: smogy} = sm;
+  const {maxAiClass, realClass} = src;
+  const sourceConfirmsAi = maxAiClass > 0.45;
+  const sourceConfirmsReal = realClass > 0.20;
+
+  let raw: number;
+  let mode: string;
+
+  if (smogy < 0.30) {
+    raw = smogy;
+    mode = "real";
+  } else if (smogy > 0.75 && sourceConfirmsReal) {
+    // SMOGY fires on a real portrait — source confirms it's real, heavy dampen
+    raw = smogy * 0.15;
+    mode = "real-portrait";
+  } else if (smogy > 0.75 && sourceConfirmsAi) {
+    // Both detectors agree: AI-generated content
+    raw = (smogy + maxAiClass) / 2;
+    mode = "consensus-ai";
+  } else if (smogy > 0.75) {
+    // SMOGY fires, source uncertain — moderate signal
+    raw = smogy * 0.40;
+    mode = "smogy-uncertain";
+  } else {
+    raw = smogy * 0.6 + maxAiClass * 0.4;
+    mode = "blend";
   }
-  const aiRaw = results.find((r) => r.label.toLowerCase() === AI_RAW_LABEL)?.score ?? 0;
-  const realRaw = results.find((r) => r.label.toLowerCase() === REAL_RAW_LABEL)?.score ?? 0;
-  // Temperature-calibrate, then cap: a single unreliable detector cannot gate alone.
-  const a = Math.min(calibrateAi(aiRaw, realRaw), config.imageAiMaxContribution);
-  return {a, source: `${MODEL_ID} (T=${config.imageAiTemperature}, capped ${config.imageAiMaxContribution})`};
+
+  const a = Math.min(raw, config.imageAiMaxContribution);
+  return {
+    a,
+    source: `${mode}(smogy=${smogy.toFixed(3)}, src_max=${maxAiClass.toFixed(3)}, src_real=${realClass.toFixed(3)}, raw=${raw.toFixed(3)}, cap=${config.imageAiMaxContribution}) [${sm.raw}, ${src.raw}]`,
+  };
 }
 
 export async function warmImageAi(image: RawImage): Promise<{label: string; score: number}[]> {
-  const clf = await getClassifier();
-  const out = (await clf(image, {top_k: 5})) as {label: string; score: number}[];
-  return Array.isArray(out) ? out : [out];
+  const clf = await getSmogy();
+  const out = await clf(image, {top_k: 5});
+  return (Array.isArray(out) ? out : [out]) as {label: string; score: number}[];
 }
-
-export const IMAGE_AI_MODEL_ID = MODEL_ID;

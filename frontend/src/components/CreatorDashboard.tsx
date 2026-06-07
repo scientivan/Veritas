@@ -14,6 +14,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { IPVerifiedBadge } from "@/components/IPVerifiedBadge";
 import { REGISTRY_ABI } from "@/lib/abis";
 import {
   LAUNCH_REGISTRY_ADDRESS,
@@ -162,12 +163,15 @@ export function CreatorDashboard() {
                   >
                     <RiskPill drs={drs} gated={gatedFlag} size="sm" />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold leading-tight text-ink">
-                        {title}
+                      <p className="flex flex-wrap items-center gap-1.5 truncate text-sm font-semibold leading-tight text-ink">
+                        <span className="truncate">{title}</span>
                         {launchInfo && (
-                          <span className="ml-1.5 font-mono text-[11px] font-normal text-muted">
+                          <span className="font-mono text-[11px] font-normal text-muted">
                             {launchInfo.tokenSymbol}
                           </span>
+                        )}
+                        {launchInfo && (
+                          <IPVerifiedBadge tokenAddress={launchInfo.tokenAddress as `0x${string}`} />
                         )}
                       </p>
                       <p className="font-mono text-[11px] text-muted">
