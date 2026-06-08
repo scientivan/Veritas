@@ -7,7 +7,7 @@ import {CreatorDashboard} from "@/components/CreatorDashboard";
 import {buttonClasses} from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Creator Studio · Veritas Protocol",
+  title: "Creator Studio · Veritas",
   description: "Your attested works, launched IP tokens, royalties, and bonding curve status.",
 };
 

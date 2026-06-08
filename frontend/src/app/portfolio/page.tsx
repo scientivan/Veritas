@@ -4,7 +4,7 @@ import {Footer} from "@/components/Footer";
 import {PortfolioDashboard} from "@/components/PortfolioDashboard";
 
 export const metadata: Metadata = {
-  title: "LP Portfolio · Veritas Protocol",
+  title: "LP Portfolio · Veritas",
   description: "Compare pool risk, monitor DRS gate proximity, and simulate IL protection for your LP positions.",
 };
 

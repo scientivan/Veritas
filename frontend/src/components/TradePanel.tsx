@@ -1,16 +1,26 @@
 "use client";
 
-import {useState} from "react";
-import {useAccount, usePublicClient, useReadContracts, useWriteContract} from "wagmi";
-import {ConnectButton} from "@rainbow-me/rainbowkit";
-import {toast} from "sonner";
-import {Loader2, Coins, ArrowDownUp} from "lucide-react";
-import {formatEther, parseEther, type Hex} from "viem";
-import type {Pool} from "@/lib/types";
-import type {LivePool} from "@/lib/livePools";
-import {Button} from "./ui/Button";
-import {STATE_VIEW_ADDRESS, V1_SWAP_ROUTER_ADDRESS} from "@/lib/contracts";
-import {TEST_ERC20_ABI, MINT_AMOUNT, MAX_UINT256, POOL_MANAGER_ABI_SLICE} from "@/lib/liquidity";
+import { useState } from "react";
+import {
+  useAccount,
+  usePublicClient,
+  useReadContracts,
+  useWriteContract,
+} from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { toast } from "sonner";
+import { Loader2, Coins, ArrowDownUp } from "lucide-react";
+import { formatEther, parseEther, type Hex } from "viem";
+import type { Pool } from "@/lib/types";
+import type { LivePool } from "@/lib/livePools";
+import { Button } from "./ui/Button";
+import { STATE_VIEW_ADDRESS, V1_SWAP_ROUTER_ADDRESS } from "@/lib/contracts";
+import {
+  TEST_ERC20_ABI,
+  MINT_AMOUNT,
+  MAX_UINT256,
+  POOL_MANAGER_ABI_SLICE,
+} from "@/lib/liquidity";
 import {
   POOL_SWAP_TEST_ABI,
   SWAP_TEST_SETTINGS,
@@ -18,16 +28,22 @@ import {
   buildSwapParams,
   priceToken1PerToken0,
 } from "@/lib/swap";
-import {useTradeHistory} from "@/hooks/useTradeHistory";
-import {cn} from "@/lib/utils";
+import { useTradeHistory } from "@/hooks/useTradeHistory";
+import { cn } from "@/lib/utils";
 
 type Side = "buy" | "sell";
 
-export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
-  const {address, isConnected} = useAccount();
+export function TradePanel({
+  pool,
+  livePool,
+}: {
+  pool: Pool;
+  livePool: LivePool;
+}) {
+  const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
-  const {writeContractAsync} = useWriteContract();
-  const {addTrade} = useTradeHistory(address);
+  const { writeContractAsync } = useWriteContract();
+  const { addTrade } = useTradeHistory(address);
 
   const [side, setSide] = useState<Side>("buy");
   const [amount, setAmount] = useState("");
@@ -36,7 +52,7 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
   const ethLabel = "ETH";
   const ipLabel = pool.title;
 
-  const {data: poolData, refetch: refetchPool} = useReadContracts({
+  const { data: poolData, refetch: refetchPool } = useReadContracts({
     contracts: [
       {
         address: STATE_VIEW_ADDRESS,
@@ -47,19 +63,41 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
     ],
   });
 
-  const {data: userData, refetch: refetchUser} = useReadContracts({
+  const { data: userData, refetch: refetchUser } = useReadContracts({
     contracts: address
       ? [
-          {address: livePool.token0, abi: TEST_ERC20_ABI, functionName: "balanceOf" as const, args: [address]},
-          {address: livePool.token1, abi: TEST_ERC20_ABI, functionName: "balanceOf" as const, args: [address]},
-          {address: livePool.token0, abi: TEST_ERC20_ABI, functionName: "allowance" as const, args: [address, V1_SWAP_ROUTER_ADDRESS]},
-          {address: livePool.token1, abi: TEST_ERC20_ABI, functionName: "allowance" as const, args: [address, V1_SWAP_ROUTER_ADDRESS]},
+          {
+            address: livePool.token0,
+            abi: TEST_ERC20_ABI,
+            functionName: "balanceOf" as const,
+            args: [address],
+          },
+          {
+            address: livePool.token1,
+            abi: TEST_ERC20_ABI,
+            functionName: "balanceOf" as const,
+            args: [address],
+          },
+          {
+            address: livePool.token0,
+            abi: TEST_ERC20_ABI,
+            functionName: "allowance" as const,
+            args: [address, V1_SWAP_ROUTER_ADDRESS],
+          },
+          {
+            address: livePool.token1,
+            abi: TEST_ERC20_ABI,
+            functionName: "allowance" as const,
+            args: [address, V1_SWAP_ROUTER_ADDRESS],
+          },
         ]
       : [],
-    query: {enabled: !!address},
+    query: { enabled: !!address },
   });
 
-  const slot0 = poolData?.[0]?.result as readonly [bigint, number, number, number] | undefined;
+  const slot0 = poolData?.[0]?.result as
+    | readonly [bigint, number, number, number]
+    | undefined;
   const sqrtPriceX96 = slot0?.[0] ?? 0n;
   const priceEth = priceToken1PerToken0(sqrtPriceX96); // quote (token1) per 1 IP (token0)
 
@@ -91,8 +129,9 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
   const inputValid = amountWei > 0n && amountWei <= inputBal;
 
   async function wait(hash: Hex) {
-    const r = await publicClient?.waitForTransactionReceipt({hash});
-    if (r && r.status !== "success") throw new Error("Transaction reverted on-chain");
+    const r = await publicClient?.waitForTransactionReceipt({ hash });
+    if (r && r.status !== "success")
+      throw new Error("Transaction reverted on-chain");
   }
 
   async function refetch() {
@@ -104,15 +143,27 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
     try {
       setBusy("Minting test tokens…");
       await wait(
-        await writeContractAsync({address: livePool.token1, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
+        await writeContractAsync({
+          address: livePool.token1,
+          abi: TEST_ERC20_ABI,
+          functionName: "mint",
+          args: [address, MINT_AMOUNT],
+        }),
       );
       await wait(
-        await writeContractAsync({address: livePool.token0, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
+        await writeContractAsync({
+          address: livePool.token0,
+          abi: TEST_ERC20_ABI,
+          functionName: "mint",
+          args: [address, MINT_AMOUNT],
+        }),
       );
-      toast.success("Minted test tokens", {description: "10 000 ETH-equivalent + IP tokens for trading."});
+      toast.success("Minted test tokens", {
+        description: "10 000 ETH-equivalent + IP tokens for trading.",
+      });
       await refetch();
     } catch (e) {
-      toast.error("Mint failed", {description: msg(e)});
+      toast.error("Mint failed", { description: msg(e) });
     } finally {
       setBusy(null);
     }
@@ -132,7 +183,7 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
             abi: TEST_ERC20_ABI,
             functionName: "approve",
             args: [V1_SWAP_ROUTER_ADDRESS, MAX_UINT256],
-          })
+          }),
         );
       }
       setBusy(buy ? "Buying…" : "Selling…");
@@ -140,7 +191,12 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
         address: V1_SWAP_ROUTER_ADDRESS,
         abi: POOL_SWAP_TEST_ABI,
         functionName: "swap",
-        args: [buildSwapKey(livePool), buildSwapParams(buy, amountWei), SWAP_TEST_SETTINGS, "0x"],
+        args: [
+          buildSwapKey(livePool),
+          buildSwapParams(buy, amountWei),
+          SWAP_TEST_SETTINGS,
+          "0x",
+        ],
       });
       await wait(txHash);
       addTrade({
@@ -158,7 +214,7 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
       setAmount("");
       await refetch();
     } catch (e) {
-      toast.error("Swap failed", {description: msg(e)});
+      toast.error("Swap failed", { description: msg(e) });
     } finally {
       setBusy(null);
     }
@@ -168,19 +224,34 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
     <div className="rounded-2xl border border-border bg-surface/40 p-5">
       <h3 className="text-sm font-medium text-ink">Trade</h3>
       <p className="mt-1 text-xs leading-relaxed text-muted">
-        Real Uniswap v4 swaps on testnet, routed through the DRS-calibrated hook. Mint test tokens,
-        then buy or sell — each is an on-chain transaction.
+        Real Uniswap v4 swaps on testnet, routed through the DRS-calibrated
+        hook. Mint test tokens, then buy or sell — each is an on-chain
+        transaction.
       </p>
 
       <dl className="mt-4 flex flex-col gap-2 text-sm">
         <Row
           label={`Price (${ethLabel}/token)`}
-          value={sqrtPriceX96 > 0n ? (priceEth >= 1 ? priceEth.toFixed(2) : priceEth.toFixed(6)) : "—"}
+          value={
+            sqrtPriceX96 > 0n
+              ? priceEth >= 1
+                ? priceEth.toFixed(2)
+                : priceEth.toFixed(6)
+              : "—"
+          }
         />
         {isConnected && (
           <>
-            <Row label={`Your ${ipLabel}`} value={(+formatEther(balIp)).toFixed(2)} subtle />
-            <Row label={`Your ${ethLabel}`} value={(+formatEther(balEth)).toFixed(2)} subtle />
+            <Row
+              label={`Your ${ipLabel}`}
+              value={(+formatEther(balIp)).toFixed(2)}
+              subtle
+            />
+            <Row
+              label={`Your ${ethLabel}`}
+              value={(+formatEther(balEth)).toFixed(2)}
+              subtle
+            />
           </>
         )}
       </dl>
@@ -198,7 +269,7 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
                 ? s === "buy"
                   ? "bg-risk-low/15 text-risk-low"
                   : "bg-risk-high/10 text-risk-high"
-                : "text-muted hover:text-ink"
+                : "text-muted hover:text-ink",
             )}
           >
             {s}
@@ -242,7 +313,12 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
             </span>
           </div>
 
-          <Button variant="secondary" className="w-full" onClick={mintTokens} disabled={!!busy}>
+          <Button
+            variant="secondary"
+            className="w-full"
+            onClick={mintTokens}
+            disabled={!!busy}
+          >
             {busy === "Minting test tokens…" ? (
               <Loader2 className="size-4 animate-spin" />
             ) : (
@@ -256,7 +332,9 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
             onClick={trade}
             disabled={!!busy || !inputValid}
           >
-            {busy === "Buying…" || busy === "Selling…" || busy === "Approving…" ? (
+            {busy === "Buying…" ||
+            busy === "Selling…" ||
+            busy === "Approving…" ? (
               <Loader2 className="size-4 animate-spin" />
             ) : null}
             {side === "buy" ? "Buy" : "Sell"} {ipLabel}
@@ -272,7 +350,7 @@ export function TradePanel({pool, livePool}: {pool: Pool; livePool: LivePool}) {
       ) : (
         <div className="mt-4 [&_button]:w-full">
           <ConnectButton.Custom>
-            {({openConnectModal}) => (
+            {({ openConnectModal }) => (
               <Button className="w-full" size="lg" onClick={openConnectModal}>
                 Connect wallet to trade
               </Button>
@@ -289,11 +367,21 @@ function msg(e: unknown): string {
   return m.slice(0, 110);
 }
 
-function Row({label, value, subtle}: {label: string; value: string; subtle?: boolean}) {
+function Row({
+  label,
+  value,
+  subtle,
+}: {
+  label: string;
+  value: string;
+  subtle?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between">
       <dt className="text-muted">{label}</dt>
-      <dd className={cn("font-mono tnum", subtle ? "text-muted" : "text-ink")}>{value}</dd>
+      <dd className={cn("font-mono tnum", subtle ? "text-muted" : "text-ink")}>
+        {value}
+      </dd>
     </div>
   );
 }

@@ -130,15 +130,17 @@ export function LpDashboard({pool}: {pool: Pool}) {
   async function mintTokens() {
     if (!address) return;
     try {
-      setBusy("Minting token 0…");
-      await wait(
-        await writeContractAsync({address: livePool!.token0, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
-      );
+      if (livePool!.token0Mintable !== false) {
+        setBusy("Minting token 0…");
+        await wait(
+          await writeContractAsync({address: livePool!.token0, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
+        );
+      }
       setBusy("Minting token 1…");
       await wait(
         await writeContractAsync({address: livePool!.token1, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
       );
-      toast.success("Minted test tokens", {description: "10 000 of each pool token minted to your wallet."});
+      toast.success("Minted test tokens", {description: "10 000 test tokens minted to your wallet."});
       await refetch();
     } catch (e) {
       toast.error("Mint failed", {description: msg(e)});

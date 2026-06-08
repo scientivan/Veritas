@@ -3,14 +3,17 @@
 import {useMemo, useState} from "react";
 import Link from "next/link";
 import {Search, Radio, Loader2} from "lucide-react";
+import type {Hex} from "viem";
 import {ExplorerLink} from "./ExplorerLink";
-import {dynamicFeeBps} from "@/lib/drs";
+import {dynamicFeeBps, BASE_FEE_BPS, MAX_FEE_BPS} from "@/lib/drs";
 import {hasLivePool, getLivePoolList} from "@/lib/livePools";
 import {ASSUMED_ANNUAL_TURNOVER, poolImage} from "@/lib/poolMeta";
 import {useAttestations} from "@/hooks/useAttestations";
+import {useOnChainLaunchpads} from "@/hooks/useOnChainLaunchpads";
 import {useLivePoolTvl} from "@/hooks/useLivePoolTvl";
 import {RiskPill} from "./RiskPill";
 import {formatFeeBps, formatPct, formatUsd, cn} from "@/lib/utils";
+import {LaunchpadPhase} from "@/lib/launchpad";
 import type {Pool} from "@/lib/types";
 
 type SortKey = "drs" | "tvl" | "apy";
@@ -23,15 +26,51 @@ const SORTS: {key: SortKey; label: string}[] = [
 export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("tvl");
-  const {pools: allPools, isLive, isLoading} = useAttestations();
+  const {pools: allPools, isLive, isLoading: attLoading} = useAttestations();
   const tvlByAttestation = useLivePoolTvl(getLivePoolList());
+  const {entries: launchpadEntries, isLoading: launchpadLoading} = useOnChainLaunchpads();
 
-  // For LPs, only pools that actually accept liquidity (a live v4 dynamic-fee pool,
-  // not gated) are providable — bonding-curve launchpad pools lock LP at graduation.
+  // For the lpOnly view: graduated on-chain launchpads that are not already in allPools.
+  const graduatedPools = useMemo<Pool[]>(() => {
+    if (!lpOnly) return [];
+    const knownIds = new Set(allPools.map((p) => p.id.toLowerCase()));
+    return launchpadEntries
+      .filter(
+        (e) =>
+          e.phase === LaunchpadPhase.GRADUATED && !knownIds.has(e.attestationId.toLowerCase())
+      )
+      .map((e) => {
+        const hue = parseInt(e.attestationId.slice(2, 6), 16) % 360;
+        return {
+          id: e.attestationId as Hex,
+          title: e.tokenName || e.attestationId.slice(0, 8) + "…",
+          medium: "Attested content",
+          creator: e.royaltyReceiver.slice(0, 6) + "…" + e.royaltyReceiver.slice(-4),
+          creatorAddress: e.royaltyReceiver,
+          swatch: `oklch(0.62 0.14 ${hue})`,
+          drs: e.drs,
+          d: e.drs,
+          a: 0,
+          baseFeeBps: BASE_FEE_BPS,
+          maxFeeBps: MAX_FEE_BPS,
+          gated: false,
+          tvlUsd: null,
+          apyPct: null,
+          duplicateCount: 0,
+          living: false,
+          ipfsCid: e.tokenURI,
+          pHash: "0x",
+          attestedAt: 0,
+        } satisfies Pool;
+      });
+  }, [lpOnly, launchpadEntries, allPools]);
+
   const pools = useMemo(
-    () => (lpOnly ? allPools.filter((p) => hasLivePool(p.id) && !p.gated) : allPools),
-    [allPools, lpOnly]
+    () => (lpOnly ? graduatedPools : allPools),
+    [allPools, lpOnly, graduatedPools]
   );
+
+  const isLoading = lpOnly ? launchpadLoading : attLoading;
 
   // Merge real (assumed-price) TVL into the pooled attestations, plus a labelled
   // APY estimate derived from the live DRS-calibrated fee (testnet has no volume).
@@ -53,7 +92,6 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
     const filtered = withTvl.filter(
       (p) => !q || p.title.toLowerCase().includes(q) || p.creator.toLowerCase().includes(q)
     );
-    // null sorts last (treated as -1).
     const val = (p: Pool) => {
       const v = sort === "drs" ? p.drs : sort === "tvl" ? p.tvlUsd : p.apyPct;
       return v ?? -1;
@@ -63,7 +101,7 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
 
   return (
     <div>
-      {isLive && (
+      {isLive && !lpOnly && (
         <div className="mb-4 flex items-center gap-2 text-xs text-primary-ink">
           <span className="relative flex size-2">
             <span className="absolute inline-flex size-full animate-ping rounded-full bg-primary-ink opacity-60" />
@@ -75,7 +113,7 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
       {isLoading && (
         <div className="mb-4 flex items-center gap-2 text-xs text-muted">
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          Fetching on-chain attestations…
+          {lpOnly ? "Fetching graduated pools…" : "Fetching on-chain attestations…"}
         </div>
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -110,96 +148,105 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-xl border border-border">
-        {/* Header (desktop) */}
-        <div className="hidden grid-cols-[2.4fr_1.2fr_1fr_1fr_0.8fr] gap-4 border-b border-border bg-surface/40 px-4 py-2.5 text-[11px] uppercase tracking-wider text-faint md:grid">
-          <span>Content</span>
-          <span>Dilution risk</span>
-          <span className="text-right">Fee</span>
-          <span className="text-right">TVL</span>
-          <span className="text-right">APY</span>
+      {!isLoading && rows.length === 0 && (
+        <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted">
+          {lpOnly
+            ? "No graduated pools yet. When a bonding curve reaches its hard cap, the pool graduates and appears here."
+            : "No pools match your search."}
         </div>
+      )}
 
-        <div className="divide-y divide-border">
-          {rows.map((p) => (
-            <Link
-              key={p.id}
-              href={`/pool/${p.id}`}
-              className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 transition-colors hover:bg-surface/60 md:grid-cols-[2.4fr_1.2fr_1fr_1fr_0.8fr] md:items-center md:py-3.5"
-            >
-              <div className="col-span-2 flex items-center gap-3 md:col-span-1">
-                <Thumbnail src={poolImage(p.id)} swatch={p.swatch} alt={p.title} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="truncate font-medium text-ink">{p.title}</span>
-                    {p.living && (
-                      <Radio className="size-3.5 shrink-0 text-primary-ink" strokeWidth={2.25} aria-label="Live DRS" />
-                    )}
-                    {hasLivePool(p.id) && (
-                      <span className="shrink-0 rounded-full border border-risk-low/40 bg-risk-low/10 px-1.5 py-0.5 text-[10px] font-medium text-risk-low">
-                        v4 pool
+      {rows.length > 0 && (
+        <div className="mt-5 overflow-hidden rounded-xl border border-border">
+          <div className="hidden grid-cols-[2.4fr_1.2fr_1fr_1fr_0.8fr] gap-4 border-b border-border bg-surface/40 px-4 py-2.5 text-[11px] uppercase tracking-wider text-faint md:grid">
+            <span>Content</span>
+            <span>Dilution risk</span>
+            <span className="text-right">Fee</span>
+            <span className="text-right">TVL</span>
+            <span className="text-right">APY</span>
+          </div>
+
+          <div className="divide-y divide-border">
+            {rows.map((p) => (
+              <Link
+                key={p.id}
+                href={`/pool/${p.id}`}
+                className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 transition-colors hover:bg-surface/60 md:grid-cols-[2.4fr_1.2fr_1fr_1fr_0.8fr] md:items-center md:py-3.5"
+              >
+                <div className="col-span-2 flex items-center gap-3 md:col-span-1">
+                  <Thumbnail src={poolImage(p.id)} swatch={p.swatch} alt={p.title} />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate font-medium text-ink">{p.title}</span>
+                      {p.living && (
+                        <Radio className="size-3.5 shrink-0 text-primary-ink" strokeWidth={2.25} aria-label="Live DRS" />
+                      )}
+                      {hasLivePool(p.id) && (
+                        <span className="shrink-0 rounded-full border border-risk-low/40 bg-risk-low/10 px-1.5 py-0.5 text-[10px] font-medium text-risk-low">
+                          v4 pool
+                        </span>
+                      )}
+                    </div>
+                    <div className="truncate font-mono text-xs text-muted">
+                      by{" "}
+                      <span
+                        onClick={(e) => e.preventDefault()}
+                        onClickCapture={(e) => e.stopPropagation()}
+                      >
+                        <ExplorerLink
+                          value={p.creatorAddress}
+                          type="address"
+                          prefixChars={4}
+                          suffixChars={4}
+                          className="text-muted hover:text-ink"
+                        />
                       </span>
-                    )}
-                  </div>
-                  <div className="truncate font-mono text-xs text-muted">
-                    by{" "}
-                    <span
-                      onClick={(e) => e.preventDefault()}
-                      onClickCapture={(e) => e.stopPropagation()}
-                    >
-                      <ExplorerLink
-                        value={p.creatorAddress}
-                        type="address"
-                        prefixChars={4}
-                        suffixChars={4}
-                        className="text-muted hover:text-ink"
-                      />
-                    </span>
-                    {" · "}
-                    {p.id.slice(0, 6)}…{p.id.slice(-4)}
+                      {" · "}
+                      {p.id.slice(0, 6)}…{p.id.slice(-4)}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <Cell label="Risk">
-                <div className="flex items-center gap-2">
-                  <RiskPill drs={p.drs} gated={p.gated} size="sm" />
-                  <span className="font-mono text-xs tnum text-muted">{formatPct(p.drs)}</span>
-                </div>
-              </Cell>
-              <Cell label="Fee" right>
-                {p.gated ? (
-                  <span className="font-mono text-sm text-risk-high">Gated</span>
-                ) : (
-                  <span className="font-mono text-sm tnum text-ink">
-                    {formatFeeBps(dynamicFeeBps(p.drs, p.baseFeeBps, p.maxFeeBps))}
-                  </span>
-                )}
-              </Cell>
-              <Cell label="TVL" right>
-                {p.tvlUsd !== null ? (
-                  <span className="flex flex-col md:items-end">
-                    <span className="font-mono text-sm tnum text-ink">{formatUsd(p.tvlUsd)}</span>
-                    <span className="text-[10px] text-faint">sim.</span>
-                  </span>
-                ) : (
-                  <span className="font-mono text-sm tnum text-muted">-</span>
-                )}
-              </Cell>
-              <Cell label="APY" right>
-                {p.apyPct !== null ? (
-                  <span className="flex flex-col md:items-end">
-                    <span className="font-mono text-sm tnum text-ink">{p.apyPct.toFixed(1)}%</span>
-                    <span className="text-[10px] text-faint">est.</span>
-                  </span>
-                ) : (
-                  <span className="font-mono text-sm tnum text-muted">-</span>
-                )}
-              </Cell>
-            </Link>
-          ))}
+                <Cell label="Risk">
+                  <div className="flex items-center gap-2">
+                    <RiskPill drs={p.drs} gated={p.gated} size="sm" />
+                    <span className="font-mono text-xs tnum text-muted">{formatPct(p.drs)}</span>
+                  </div>
+                </Cell>
+                <Cell label="Fee" right>
+                  {p.gated ? (
+                    <span className="font-mono text-sm text-risk-high">Gated</span>
+                  ) : (
+                    <span className="font-mono text-sm tnum text-ink">
+                      {formatFeeBps(dynamicFeeBps(p.drs, p.baseFeeBps, p.maxFeeBps))}
+                    </span>
+                  )}
+                </Cell>
+                <Cell label="TVL" right>
+                  {p.tvlUsd !== null ? (
+                    <span className="flex flex-col md:items-end">
+                      <span className="font-mono text-sm tnum text-ink">{formatUsd(p.tvlUsd)}</span>
+                      <span className="text-[10px] text-faint">sim.</span>
+                    </span>
+                  ) : (
+                    <span className="font-mono text-sm tnum text-muted">-</span>
+                  )}
+                </Cell>
+                <Cell label="APY" right>
+                  {p.apyPct !== null ? (
+                    <span className="flex flex-col md:items-end">
+                      <span className="font-mono text-sm tnum text-ink">{p.apyPct.toFixed(1)}%</span>
+                      <span className="text-[10px] text-faint">est.</span>
+                    </span>
+                  ) : (
+                    <span className="font-mono text-sm tnum text-muted">-</span>
+                  )}
+                </Cell>
+              </Link>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

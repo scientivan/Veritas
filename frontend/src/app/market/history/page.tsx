@@ -5,7 +5,7 @@ import {CollectorTabs} from "@/components/CollectorTabs";
 import {TradeHistoryView} from "@/components/TradeHistoryView";
 
 export const metadata: Metadata = {
-  title: "History · Veritas Protocol",
+  title: "History · Veritas",
   description: "Your buy and sell history across creator IP tokens.",
 };
 

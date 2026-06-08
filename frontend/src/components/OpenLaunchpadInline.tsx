@@ -67,6 +67,7 @@ export function OpenLaunchpadInline({
 
   const isOpening = state.step === "opening";
   const isDone = state.step === "opened" || liveOnChain;
+  const isGraduated = !!cfg && Number(cfg.phase) === LaunchpadPhase.GRADUATED;
 
   // Persist the opened launchpad so the marketplace / studio pick it up.
   useEffect(() => {
@@ -91,13 +92,13 @@ export function OpenLaunchpadInline({
       <div className="rounded-xl border border-risk-low/30 bg-risk-low/5 p-4">
         <p className="flex items-center gap-2 text-sm font-medium text-risk-low">
           <CheckCircle2 className="size-4" />
-          Bonding curve is live
+          {isGraduated ? "Graduated to v4 pool" : "Bonding curve is live"}
         </p>
         <Link
-          href={`/trade/${attestationId}`}
+          href={isGraduated ? `/pool/${attestationId}` : `/trade/${attestationId}`}
           className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary-ink hover:underline"
         >
-          View in marketplace
+          {isGraduated ? "View v4 pool" : "View in marketplace"}
           <ArrowRight className="size-3.5" strokeWidth={2.25} />
         </Link>
       </div>

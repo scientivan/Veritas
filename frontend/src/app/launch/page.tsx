@@ -4,7 +4,7 @@ import { Footer } from "@/components/Footer";
 import { LaunchFlow } from "@/components/LaunchFlow";
 
 export const metadata: Metadata = {
-  title: "Launch Your IP · Veritas Protocol",
+  title: "Launch Your IP · Veritas",
   description:
     "Verify, attest, and tokenize your visual artwork as an ERC-20 IP token in one flow. DRS-gated: only original content passes.",
 };

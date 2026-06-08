@@ -45,8 +45,8 @@ export async function generateMetadata({
   const pool = isAttestationId(id) ? await getOnChainPool(id) : undefined;
   return {
     title: pool
-      ? `${pool.title} · Veritas Protocol`
-      : "Pool · Veritas Protocol",
+      ? `${pool.title} · Veritas`
+      : "Pool · Veritas",
   };
 }
 

@@ -7,7 +7,7 @@ import {unichainSepolia} from "./chains";
  * for full wallet support.
  */
 export const wagmiConfig = getDefaultConfig({
-  appName: "Veritas Protocol",
+  appName: "Veritas",
   projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? "veritas_demo",
   chains: [unichainSepolia],
   ssr: true,

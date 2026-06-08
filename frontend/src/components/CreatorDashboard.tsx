@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { useAccount, useReadContracts } from "wagmi";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import {useMemo, useState} from "react";
+import type {ReactNode} from "react";
+import {useAccount} from "wagmi";
+import {ConnectButton} from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -12,69 +12,27 @@ import {
   CheckCircle2,
   AlertTriangle,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
-import { IPVerifiedBadge } from "@/components/IPVerifiedBadge";
-import { REGISTRY_ABI } from "@/lib/abis";
-import {
-  LAUNCH_REGISTRY_ADDRESS,
-  REGISTRY_ADDRESS,
-  EXPLORER,
-} from "@/lib/contracts";
-import { KNOWN_ATTESTATION_IDS } from "@/lib/knownAttestations";
-import { poolTitle } from "@/lib/poolMeta";
-import { hasLivePool } from "@/lib/livePools";
-import { useLaunchedIPs } from "@/hooks/useLaunchedIPs";
-import { DRSGauge } from "./DRSGauge";
-import { RoyaltyClaimCard } from "./RoyaltyClaimCard";
-import { OpenLaunchpadInline } from "./OpenLaunchpadInline";
-import { RiskPill } from "./RiskPill";
-import { combineDrs, DRS_GATE } from "@/lib/drs";
-import { formatPct, shortenAddress, cn } from "@/lib/utils";
-import type { Hex } from "viem";
+import {AnimatePresence, motion} from "motion/react";
+import {IPVerifiedBadge} from "@/components/IPVerifiedBadge";
+import {LAUNCH_REGISTRY_ADDRESS, REGISTRY_ADDRESS, EXPLORER} from "@/lib/contracts";
+import {useMyAttestations} from "@/hooks/useMyAttestations";
+import {DRSGauge} from "./DRSGauge";
+import {RoyaltyClaimCard} from "./RoyaltyClaimCard";
+import {OpenLaunchpadInline} from "./OpenLaunchpadInline";
+import {RiskPill} from "./RiskPill";
+import {DRS_GATE} from "@/lib/drs";
+import {formatPct, shortenAddress, cn} from "@/lib/utils";
+import type {Hex} from "viem";
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const EASE: [number, number, number, number] = [0.25, 1, 0.5, 1];
 
-type AttRecord = {
-  aiReplicabilityScore: number;
-  offchainD: number;
-  ipfsCid: string;
-  owner: string;
-  // uint64 on-chain → viem decodes it as a bigint, not a number.
-  attestedAt: bigint;
-  disputed: boolean;
-};
-
 export function CreatorDashboard() {
-  const { address, isConnected } = useAccount();
-  const { launchedIPs, isLaunched, getLaunchedIP } = useLaunchedIPs();
+  const {isConnected} = useAccount();
+  const {attestations, isLoading} = useMyAttestations();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-
-  // Freshly launched IPs get a brand-new attestation id that is not in the
-  // curated KNOWN list, so merge in the ids saved locally at launch time —
-  // otherwise a just-launched pool would never show up in the studio.
-  const allIds = useMemo<Hex[]>(() => {
-    const ids = [...KNOWN_ATTESTATION_IDS];
-    for (const ip of launchedIPs) {
-      if (!ids.some((x) => x.toLowerCase() === ip.attestationId.toLowerCase())) {
-        ids.push(ip.attestationId);
-      }
-    }
-    return ids;
-  }, [launchedIPs]);
-
-  const attRecordCalls = allIds.map((id) => ({
-    address: REGISTRY_ADDRESS as Hex,
-    abi: REGISTRY_ABI,
-    functionName: "getRecord" as const,
-    args: [id as Hex],
-  }));
-
-  const { data: attRecords } = useReadContracts({
-    contracts: attRecordCalls,
-    query: { enabled: isConnected && !!address },
-  });
 
   if (!isConnected) {
     return (
@@ -87,27 +45,20 @@ export function CreatorDashboard() {
     );
   }
 
-  const myAttestations = allIds.flatMap((id, i) => {
-    const rec = attRecords?.[i]?.result as AttRecord | undefined;
-    if (!rec) return [];
-    if (rec.owner?.toLowerCase() !== address?.toLowerCase()) return [];
-    const drs = combineDrs(
-      rec.offchainD / 10000,
-      rec.aiReplicabilityScore / 10000,
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-surface p-12 text-sm text-muted">
+        <Loader2 className="size-4 animate-spin" />
+        Loading your attestations…
+      </div>
     );
-    return [{ id: id as Hex, rec, drs }];
-  });
+  }
 
-  const isLive = (id: Hex) => isLaunched(id) || hasLivePool(id);
-  const launched = myAttestations.filter((a) => isLive(a.id));
-  const readyToLaunch = myAttestations.filter(
-    (a) => !isLive(a.id) && a.drs < DRS_GATE,
-  );
-  const gated = myAttestations.filter(
-    (a) => !isLive(a.id) && a.drs >= DRS_GATE,
-  );
+  const launched = attestations.filter((a) => !!a.tokenAddress);
+  const readyToLaunch = attestations.filter((a) => !a.tokenAddress && a.drs < DRS_GATE);
+  const gated = attestations.filter((a) => !a.tokenAddress && a.drs >= DRS_GATE);
 
-  if (myAttestations.length === 0) {
+  if (attestations.length === 0) {
     return (
       <div className="flex flex-col items-center gap-5 rounded-2xl border border-dashed border-border bg-surface p-12 text-center">
         <p className="font-display text-xl font-semibold text-ink">
@@ -145,11 +96,11 @@ export function CreatorDashboard() {
             countClass="bg-risk-low/15 text-risk-low"
           />
           <ul className="flex flex-col gap-1.5" role="list">
-            {launched.map(({ id, rec, drs }) => {
+            {launched.map((att) => {
+              const {id, drs, d, a, attestedAt, disputed} = att;
               const gatedFlag = drs >= DRS_GATE;
-              const launchInfo = getLaunchedIP(id);
               const isOpen = expandedId === id;
-              const title = launchInfo?.tokenName ?? poolTitle(id, rec.ipfsCid);
+              const title = att.tokenName || shortenAddress(att.tokenAddress!, 6);
 
               return (
                 <li
@@ -165,13 +116,13 @@ export function CreatorDashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="flex flex-wrap items-center gap-1.5 truncate text-sm font-semibold leading-tight text-ink">
                         <span className="truncate">{title}</span>
-                        {launchInfo && (
+                        {att.tokenSymbol && (
                           <span className="font-mono text-[11px] font-normal text-muted">
-                            {launchInfo.tokenSymbol}
+                            {att.tokenSymbol}
                           </span>
                         )}
-                        {launchInfo && (
-                          <IPVerifiedBadge tokenAddress={launchInfo.tokenAddress as `0x${string}`} />
+                        {att.tokenAddress && (
+                          <IPVerifiedBadge tokenAddress={att.tokenAddress} />
                         )}
                       </p>
                       <p className="font-mono text-[11px] text-muted">
@@ -201,55 +152,42 @@ export function CreatorDashboard() {
                     {isOpen && (
                       <motion.div
                         key="detail"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22, ease: EASE }}
-                        style={{ overflow: "hidden" }}
+                        initial={{height: 0, opacity: 0}}
+                        animate={{height: "auto", opacity: 1}}
+                        exit={{height: 0, opacity: 0}}
+                        transition={{duration: 0.22, ease: EASE}}
+                        style={{overflow: "hidden"}}
                       >
                         <div className="border-t border-border px-4 pb-5 pt-4">
                           <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
                             <div className="shrink-0 self-start">
-                              <DRSGauge
-                                drs={drs}
-                                d={rec.offchainD / 10000}
-                                a={rec.aiReplicabilityScore / 10000}
-                                gated={gatedFlag}
-                              />
+                              <DRSGauge drs={drs} d={d} a={a} gated={gatedFlag} />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col gap-5">
                               <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
-                                {launchInfo && (
-                                  <>
-                                    <DetailField
-                                      label="Token name"
-                                      value={launchInfo.tokenName}
-                                    />
-                                    <DetailField
-                                      label="Symbol"
-                                      value={launchInfo.tokenSymbol}
-                                      mono
-                                    />
-                                    <div className="col-span-2">
-                                      <dt className="text-[11px] uppercase tracking-wide text-muted">
-                                        Token address
-                                      </dt>
-                                      <dd className="mt-0.5 font-mono text-xs text-primary-ink">
-                                        <a
-                                          href={`${EXPLORER}/token/${launchInfo.tokenAddress}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="inline-flex items-center gap-1 hover:underline"
-                                        >
-                                          {shortenAddress(
-                                            launchInfo.tokenAddress,
-                                            8,
-                                          )}
-                                          <ExternalLink className="size-3" />
-                                        </a>
-                                      </dd>
-                                    </div>
-                                  </>
+                                {att.tokenName && (
+                                  <DetailField label="Token name" value={att.tokenName} />
+                                )}
+                                {att.tokenSymbol && (
+                                  <DetailField label="Symbol" value={att.tokenSymbol} mono />
+                                )}
+                                {att.tokenAddress && (
+                                  <div className="col-span-2">
+                                    <dt className="text-[11px] uppercase tracking-wide text-muted">
+                                      Token address
+                                    </dt>
+                                    <dd className="mt-0.5 font-mono text-xs text-primary-ink">
+                                      <a
+                                        href={`${EXPLORER}/token/${att.tokenAddress}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 hover:underline"
+                                      >
+                                        {shortenAddress(att.tokenAddress, 8)}
+                                        <ExternalLink className="size-3" />
+                                      </a>
+                                    </dd>
+                                  </div>
                                 )}
                                 <div className="col-span-2">
                                   <dt className="text-[11px] uppercase tracking-wide text-muted">
@@ -270,10 +208,8 @@ export function CreatorDashboard() {
                                 <DetailField
                                   label="Attested"
                                   value={
-                                    rec.attestedAt
-                                      ? new Date(
-                                          Number(rec.attestedAt) * 1000,
-                                        ).toLocaleDateString()
+                                    attestedAt
+                                      ? new Date(Number(attestedAt) * 1000).toLocaleDateString()
                                       : "—"
                                   }
                                 />
@@ -284,59 +220,39 @@ export function CreatorDashboard() {
                                   <dd
                                     className={cn(
                                       "mt-0.5 text-sm font-medium",
-                                      rec.disputed
-                                        ? "text-risk-high"
-                                        : "text-risk-low",
+                                      disputed ? "text-risk-high" : "text-risk-low"
                                     )}
                                   >
-                                    {rec.disputed ? "Yes" : "No"}
+                                    {disputed ? "Yes" : "No"}
                                   </dd>
                                 </div>
                               </dl>
 
-                              {launchInfo ? (
-                                <div className="flex flex-col gap-3">
-                                  {/* OpenLaunchpadInline reads the on-chain phase: it shows
-                                      "live + view market" if the curve is active, else the
-                                      open form (so a phantom localStorage record self-heals). */}
-                                  <OpenLaunchpadInline
-                                    attestationId={id}
-                                    ipToken={launchInfo.tokenAddress}
-                                    tokenName={launchInfo.tokenName}
-                                    tokenSymbol={launchInfo.tokenSymbol}
-                                    tokenURI={rec.ipfsCid}
-                                  />
-                                  <RoyaltyClaimCard
-                                    ipTokenAddress={launchInfo.tokenAddress}
-                                    ipTokenSymbol={launchInfo.tokenSymbol}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="rounded-xl border border-dashed border-border bg-bg p-4 text-center">
-                                  <p className="text-sm text-muted">
-                                    This is a live v4 pool — provide liquidity or view it.
-                                  </p>
-                                  <Link
-                                    href={`/pool/${id}`}
-                                    className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-primary-ink hover:underline"
-                                  >
-                                    View pool
-                                    <ArrowRight className="size-3.5" strokeWidth={2.25} />
-                                  </Link>
-                                </div>
+                              <div className="flex flex-col gap-3">
+                                <OpenLaunchpadInline
+                                  attestationId={id}
+                                  ipToken={att.tokenAddress!}
+                                  tokenName={att.tokenName ?? ""}
+                                  tokenSymbol={att.tokenSymbol ?? ""}
+                                  tokenURI={att.tokenURI ?? att.ipfsCid}
+                                />
+                                <RoyaltyClaimCard
+                                  ipTokenAddress={att.tokenAddress!}
+                                  ipTokenSymbol={att.tokenSymbol ?? ""}
+                                />
+                              </div>
+
+                              {LAUNCH_REGISTRY_ADDRESS === ZERO_ADDRESS && (
+                                <p className="mt-4 text-center text-xs text-amber-500/80">
+                                  IPLaunchRegistry not yet deployed. Deploy with{" "}
+                                  <code className="font-mono">
+                                    forge script script/DeployIPLaunch.s.sol
+                                  </code>
+                                  .
+                                </p>
                               )}
                             </div>
                           </div>
-
-                          {LAUNCH_REGISTRY_ADDRESS === ZERO_ADDRESS && (
-                            <p className="mt-4 text-center text-xs text-amber-500/80">
-                              IPLaunchRegistry not yet deployed. Deploy with{" "}
-                              <code className="font-mono">
-                                forge script script/DeployIPLaunch.s.sol
-                              </code>
-                              .
-                            </p>
-                          )}
                         </div>
                       </motion.div>
                     )}
@@ -370,7 +286,8 @@ export function CreatorDashboard() {
             }
           />
           <ul className="flex flex-col gap-1.5" role="list">
-            {readyToLaunch.map(({ id, rec, drs }) => {
+            {readyToLaunch.map((att) => {
+              const {id, drs, d, a, attestedAt, ipfsCid} = att;
               const isOpen = expandedId === id;
               return (
                 <li
@@ -384,7 +301,7 @@ export function CreatorDashboard() {
                     <RiskPill drs={drs} gated={false} size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold leading-tight text-ink">
-                        {poolTitle(id, rec.ipfsCid)}
+                        {ipfsCid.length > 0 ? ipfsCid.slice(0, 20) + "…" : shortenAddress(id, 6)}
                       </p>
                       <p className="font-mono text-[11px] text-muted">
                         {shortenAddress(id, 6)}
@@ -412,21 +329,16 @@ export function CreatorDashboard() {
                     {isOpen && (
                       <motion.div
                         key="detail"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22, ease: EASE }}
-                        style={{ overflow: "hidden" }}
+                        initial={{height: 0, opacity: 0}}
+                        animate={{height: "auto", opacity: 1}}
+                        exit={{height: 0, opacity: 0}}
+                        transition={{duration: 0.22, ease: EASE}}
+                        style={{overflow: "hidden"}}
                       >
                         <div className="border-t border-border px-4 pb-5 pt-4">
                           <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
                             <div className="shrink-0 self-start">
-                              <DRSGauge
-                                drs={drs}
-                                d={rec.offchainD / 10000}
-                                a={rec.aiReplicabilityScore / 10000}
-                                gated={false}
-                              />
+                              <DRSGauge drs={drs} d={d} a={a} gated={false} />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col gap-5">
                               <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -446,23 +358,21 @@ export function CreatorDashboard() {
                                     </a>
                                   </dd>
                                 </div>
-                                <div className="col-span-2">
-                                  <dt className="text-[11px] uppercase tracking-wide text-muted">
-                                    IPFS CID
-                                  </dt>
-                                  <dd className="mt-0.5 font-mono text-xs text-muted">
-                                    {rec.ipfsCid.length > 44
-                                      ? rec.ipfsCid.slice(0, 44) + "…"
-                                      : rec.ipfsCid}
-                                  </dd>
-                                </div>
+                                {ipfsCid && (
+                                  <div className="col-span-2">
+                                    <dt className="text-[11px] uppercase tracking-wide text-muted">
+                                      IPFS CID
+                                    </dt>
+                                    <dd className="mt-0.5 font-mono text-xs text-muted">
+                                      {ipfsCid.length > 44 ? ipfsCid.slice(0, 44) + "…" : ipfsCid}
+                                    </dd>
+                                  </div>
+                                )}
                                 <DetailField
                                   label="Attested"
                                   value={
-                                    rec.attestedAt
-                                      ? new Date(
-                                          Number(rec.attestedAt) * 1000,
-                                        ).toLocaleDateString()
+                                    attestedAt
+                                      ? new Date(Number(attestedAt) * 1000).toLocaleDateString()
                                       : "—"
                                   }
                                 />
@@ -471,10 +381,7 @@ export function CreatorDashboard() {
                                     D / A scores
                                   </dt>
                                   <dd className="mt-0.5 font-mono text-xs text-ink">
-                                    {formatPct(rec.offchainD / 10000)} /{" "}
-                                    {formatPct(
-                                      rec.aiReplicabilityScore / 10000,
-                                    )}
+                                    {formatPct(d)} / {formatPct(a)}
                                   </dd>
                                 </div>
                               </dl>
@@ -509,7 +416,8 @@ export function CreatorDashboard() {
             description="DRS above 85%: too many near-duplicates or high AI-replicability. These cannot be tokenized until the score is disputed and resolved."
           />
           <ul className="flex flex-col gap-1.5" role="list">
-            {gated.map(({ id, rec, drs }) => {
+            {gated.map((att) => {
+              const {id, drs, d, a, attestedAt, ipfsCid} = att;
               const isOpen = expandedId === id;
               return (
                 <li
@@ -523,7 +431,7 @@ export function CreatorDashboard() {
                     <RiskPill drs={drs} gated size="sm" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-semibold leading-tight text-ink">
-                        {poolTitle(id, rec.ipfsCid)}
+                        {ipfsCid.length > 0 ? ipfsCid.slice(0, 20) + "…" : shortenAddress(id, 6)}
                       </p>
                       <p className="font-mono text-[11px] text-muted">
                         {shortenAddress(id, 6)}
@@ -551,21 +459,16 @@ export function CreatorDashboard() {
                     {isOpen && (
                       <motion.div
                         key="detail"
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.22, ease: EASE }}
-                        style={{ overflow: "hidden" }}
+                        initial={{height: 0, opacity: 0}}
+                        animate={{height: "auto", opacity: 1}}
+                        exit={{height: 0, opacity: 0}}
+                        transition={{duration: 0.22, ease: EASE}}
+                        style={{overflow: "hidden"}}
                       >
                         <div className="border-t border-border px-4 pb-5 pt-4">
                           <div className="flex flex-col gap-6 sm:flex-row sm:gap-8">
                             <div className="shrink-0 self-start">
-                              <DRSGauge
-                                drs={drs}
-                                d={rec.offchainD / 10000}
-                                a={rec.aiReplicabilityScore / 10000}
-                                gated
-                              />
+                              <DRSGauge drs={drs} d={d} a={a} gated />
                             </div>
                             <div className="flex min-w-0 flex-1 flex-col gap-5">
                               <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -585,23 +488,21 @@ export function CreatorDashboard() {
                                     </a>
                                   </dd>
                                 </div>
-                                <div className="col-span-2">
-                                  <dt className="text-[11px] uppercase tracking-wide text-muted">
-                                    IPFS CID
-                                  </dt>
-                                  <dd className="mt-0.5 font-mono text-xs text-muted">
-                                    {rec.ipfsCid.length > 44
-                                      ? rec.ipfsCid.slice(0, 44) + "…"
-                                      : rec.ipfsCid}
-                                  </dd>
-                                </div>
+                                {ipfsCid && (
+                                  <div className="col-span-2">
+                                    <dt className="text-[11px] uppercase tracking-wide text-muted">
+                                      IPFS CID
+                                    </dt>
+                                    <dd className="mt-0.5 font-mono text-xs text-muted">
+                                      {ipfsCid.length > 44 ? ipfsCid.slice(0, 44) + "…" : ipfsCid}
+                                    </dd>
+                                  </div>
+                                )}
                                 <DetailField
                                   label="Attested"
                                   value={
-                                    rec.attestedAt
-                                      ? new Date(
-                                          Number(rec.attestedAt) * 1000,
-                                        ).toLocaleDateString()
+                                    attestedAt
+                                      ? new Date(Number(attestedAt) * 1000).toLocaleDateString()
                                       : "—"
                                   }
                                 />
@@ -610,10 +511,7 @@ export function CreatorDashboard() {
                                     D / A scores
                                   </dt>
                                   <dd className="mt-0.5 font-mono text-xs text-risk-high">
-                                    {formatPct(rec.offchainD / 10000)} /{" "}
-                                    {formatPct(
-                                      rec.aiReplicabilityScore / 10000,
-                                    )}
+                                    {formatPct(d)} / {formatPct(a)}
                                   </dd>
                                 </div>
                               </dl>
@@ -628,10 +526,7 @@ export function CreatorDashboard() {
                                   className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-primary-ink hover:underline"
                                 >
                                   Submit dispute
-                                  <ArrowRight
-                                    className="size-3.5"
-                                    strokeWidth={2.25}
-                                  />
+                                  <ArrowRight className="size-3.5" strokeWidth={2.25} />
                                 </Link>
                               </div>
                             </div>
@@ -672,8 +567,8 @@ function ExpandButton({
       }}
     >
       <motion.span
-        animate={{ rotate: isOpen ? 180 : 0 }}
-        transition={{ duration: 0.2, ease: EASE }}
+        animate={{rotate: isOpen ? 180 : 0}}
+        transition={{duration: 0.2, ease: EASE}}
         className="block"
       >
         <ChevronDown className="size-4" />
@@ -699,15 +594,8 @@ function SectionHeader({
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2">
         {icon}
-        <h2 className="font-display text-base font-semibold text-ink">
-          {title}
-        </h2>
-        <span
-          className={cn(
-            "rounded-full px-2 py-0.5 text-[11px] font-semibold",
-            countClass,
-          )}
-        >
+        <h2 className="font-display text-base font-semibold text-ink">{title}</h2>
+        <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", countClass)}>
           {count}
         </span>
       </div>
@@ -727,17 +615,8 @@ function DetailField({
 }) {
   return (
     <div>
-      <dt className="text-[11px] uppercase tracking-wide text-muted">
-        {label}
-      </dt>
-      <dd
-        className={cn(
-          "mt-0.5 text-sm font-medium text-ink",
-          mono && "font-mono",
-        )}
-      >
-        {value}
-      </dd>
+      <dt className="text-[11px] uppercase tracking-wide text-muted">{label}</dt>
+      <dd className={cn("mt-0.5 text-sm font-medium text-ink", mono && "font-mono")}>{value}</dd>
     </div>
   );
 }

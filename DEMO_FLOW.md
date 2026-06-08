@@ -1,4 +1,4 @@
-# Veritas Protocol - Demo Flow (Video Recording Guide)
+# Veritas - Demo Flow (Video Recording Guide)
 
 > Target duration: under 5 minutes. No AI voices.
 > Tool: OBS Studio (screen recording) + Remotion (animated segments - auto-rendered).

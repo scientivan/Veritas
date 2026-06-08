@@ -5,7 +5,7 @@ import {CollectorTabs} from "@/components/CollectorTabs";
 import {CollectorMarketplace} from "@/components/CollectorMarketplace";
 
 export const metadata: Metadata = {
-  title: "Marketplace · Veritas Protocol",
+  title: "Marketplace · Veritas",
   description: "Collect and trade DRS-verified creator IP tokens.",
 };
 

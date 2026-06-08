@@ -1,6 +1,6 @@
 # Veritas Oracle Service
 
-The off-chain risk engine for [Veritas Protocol](../README.md). It fingerprints
+The off-chain risk engine for [Veritas](../README.md). It fingerprints
 content, computes the real **Dilution Risk Score** channels (D + A), and returns
 the **EIP-712 operator signatures** that `VeritasRegistry.attest(...)` verifies
 on-chain. The browser never sees the operator key - only the signatures.

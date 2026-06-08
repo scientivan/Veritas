@@ -5,7 +5,7 @@ import {CollectorTabs} from "@/components/CollectorTabs";
 import {CollectorPortfolio} from "@/components/CollectorPortfolio";
 
 export const metadata: Metadata = {
-  title: "Portfolio · Veritas Protocol",
+  title: "Portfolio · Veritas",
   description: "Your collection of DRS-verified creator IP tokens and its live value.",
 };
 

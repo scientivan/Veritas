@@ -1,10 +1,12 @@
-# Veritas Protocol
+# Veritas
 
 **Two systems. One score. The creator-economy infrastructure that was missing.**
 
 Veritas is a Uniswap v4 hook submission for UHI9 Hookathon that solves two connected problems simultaneously: **System V1** gives creators a trustless fair-launch launchpad with enforced perpetual royalties and no intermediary. **System V2** gives LPs a live, autonomously-updated content-authenticity risk score so they can price impermanent loss in content-asset pools. The two systems are connected by **IPLaunchRegistry**: a bridge that gates V1 access behind the V2 DRS score, ensuring only original content can raise capital.
 
 > UHI9 Hookathon submission. Theme: Impermanent Loss and Yield Systems. Built on Uniswap v4 (Unichain Sepolia) x Reactive Network.
+
+**Submission files (slides + demo video): [bit.ly/veritas-submission-files](https://bit.ly/veritas-submission-files)**
 
 ---
 

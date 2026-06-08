@@ -100,7 +100,7 @@ export const Intro: React.FC = () => {
               letterSpacing: -0.5,
             }}
           >
-            Veritas Protocol
+            Veritas
           </span>
         </div>
         <div

@@ -23,7 +23,7 @@ const mono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Veritas Protocol · Provenance-aware risk for content pools",
+  title: "Veritas · Provenance-aware risk for content pools",
   description:
     "Veritas turns content authenticity into an on-chain Dilution Risk Score that prices an LP's real downside and calibrates a Uniswap v4 pool's fee automatically.",
 };

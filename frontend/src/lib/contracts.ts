@@ -53,6 +53,10 @@ export const LAUNCH_REGISTRY_ADDRESS: Address = "0x9dF98317b07B2964c25b45a934a0f
 
 // ── Shared ────────────────────────────────────────────────────────────────────
 
+/** Deployment blocks for event log queries (used to set fromBlock for chunked getLogs). */
+export const REGISTRY_DEPLOY_BLOCK = 53748173n;
+export const LAUNCH_REGISTRY_DEPLOY_BLOCK = 53918446n;
+
 export const CHAIN_ID = 1301;
 export const EXPLORER = "https://sepolia.uniscan.xyz";
 export const SOURCIFY_LOOKUP = "https://sourcify.dev/#/lookup";

@@ -13,7 +13,7 @@ import {VeritasRegistryCallback} from "../src/VeritasRegistryCallback.sol";
 import {IVeritasRegistry} from "../src/interfaces/IVeritasRegistry.sol";
 
 /**
- * @notice Deploys the Veritas Protocol stack to Unichain Sepolia (or any v4 chain).
+ * @notice Deploys the Veritas stack to Unichain Sepolia (or any v4 chain).
  *
  * Order: VeritasOracle -> VeritasRegistry -> VeritasHook (CREATE2-mined) -> VeritasRegistryCallback,
  * then sets the callback as the registry's dilution updater. Deploy the DilutionMonitorRSC separately

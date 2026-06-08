@@ -1,11 +1,12 @@
 {
   "name": "veritas-demo-video",
   "version": "1.0.0",
-  "description": "Remotion demo video for Veritas Protocol",
+  "description": "Remotion demo video for Veritas",
   "scripts": {
     "start": "npx remotion studio src/index.ts",
     "render": "npx remotion render src/index.ts VeritasDemo out/veritas-demo.mp4",
-    "render:gif": "npx remotion render src/index.ts VeritasIntro out/veritas-intro.gif"
+    "capture": "node scripts/capture-slides.mjs",
+    "record": "node scripts/record-demos.mjs"
   },
   "dependencies": {
     "@remotion/bundler": "*",
@@ -18,6 +19,10 @@
   "devDependencies": {
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "typescript": "^5.0.0"
+    "typescript": "^5.0.0",
+    "puppeteer": "^22",
+    "playwright": "^1.44",
+    "viem": "^2",
+    "dotenv": "^16"
   }
 }

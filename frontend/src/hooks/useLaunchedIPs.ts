@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, useCallback, useEffect} from "react";
+import {useState, useCallback} from "react";
 import type {Hex} from "viem";
 
 export interface LaunchedIP {
@@ -11,36 +11,31 @@ export interface LaunchedIP {
   launchedAt: number;
 }
 
-const STORAGE_KEY = "veritas-launched-ips";
-
+/**
+ * In-session optimistic state for newly launched IP tokens. Used by LaunchFlow to
+ * provide immediate feedback in the current browser session. All persistent data
+ * reads happen through useMyAttestations (on-chain events), not here.
+ */
 export function useLaunchedIPs() {
   const [launchedIPs, setLaunchedIPs] = useState<LaunchedIP[]>([]);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setLaunchedIPs(JSON.parse(raw) as LaunchedIP[]);
-    } catch {}
-  }, []);
-
   const addLaunchedIP = useCallback((ip: LaunchedIP) => {
-    setLaunchedIPs((prev) => {
-      const next = [...prev.filter((p) => p.attestationId !== ip.attestationId), ip];
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {}
-      return next;
-    });
+    setLaunchedIPs((prev) => [
+      ip,
+      ...prev.filter((p) => p.attestationId.toLowerCase() !== ip.attestationId.toLowerCase()),
+    ]);
   }, []);
 
   const isLaunched = useCallback(
-    (attestationId: Hex) => launchedIPs.some((p) => p.attestationId === attestationId),
-    [launchedIPs],
+    (attestationId: Hex) =>
+      launchedIPs.some((p) => p.attestationId.toLowerCase() === attestationId.toLowerCase()),
+    [launchedIPs]
   );
 
   const getLaunchedIP = useCallback(
-    (attestationId: Hex) => launchedIPs.find((p) => p.attestationId === attestationId) ?? null,
-    [launchedIPs],
+    (attestationId: Hex) =>
+      launchedIPs.find((p) => p.attestationId.toLowerCase() === attestationId.toLowerCase()) ?? null,
+    [launchedIPs]
   );
 
   return {launchedIPs, addLaunchedIP, isLaunched, getLaunchedIP};

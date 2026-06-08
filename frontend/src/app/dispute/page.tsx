@@ -4,7 +4,7 @@ import {Footer} from "@/components/Footer";
 import {DisputeCenter} from "@/components/DisputeCenter";
 
 export const metadata: Metadata = {
-  title: "Disputes · Veritas Protocol",
+  title: "Disputes · Veritas",
   description: "Challenge a Dilution Risk Score you believe is a false positive.",
 };
 

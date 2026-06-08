@@ -17,8 +17,8 @@ export async function generateMetadata({
   const {address} = await params;
   return {
     title: isAddress(address)
-      ? `Creator ${shortenAddress(address, 6)} · Veritas Protocol`
-      : "Creator · Veritas Protocol",
+      ? `Creator ${shortenAddress(address, 6)} · Veritas`
+      : "Creator · Veritas",
   };
 }
 

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Veritas Protocol off-chain DRS oracle: fingerprints content, computes Dilution Risk Score (D + A), and returns EIP-712 operator signatures the registry verifies on-chain.",
+  "description": "Veritas off-chain DRS oracle: fingerprints content, computes Dilution Risk Score (D + A), and returns EIP-712 operator signatures the registry verifies on-chain.",
   "engines": {
     "node": ">=20"
   },

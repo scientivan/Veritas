@@ -83,9 +83,9 @@ export function buildPoolKey(pool: LivePool): PoolKey {
   return {
     currency0: pool.token0,
     currency1: pool.token1,
-    fee: DYNAMIC_FEE_FLAG,
+    fee: pool.poolFee ?? DYNAMIC_FEE_FLAG,
     tickSpacing: TICK_SPACING,
-    hooks: HOOK_ADDRESS,
+    hooks: pool.hooksAddress ?? HOOK_ADDRESS,
   };
 }
 

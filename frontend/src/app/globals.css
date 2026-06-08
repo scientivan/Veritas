@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /*
-  Veritas Protocol design tokens (see DESIGN.md).
+  Veritas design tokens (see DESIGN.md).
   Dark by default; a true-light theme via [data-theme="light"].
   One disciplined brand accent (Reactive blue #004eff); green/amber/red reserved for risk only.
 */
@@ -50,7 +50,9 @@
 
   --primary: oklch(0.522 0.267 263.3);
   --primary-hover: oklch(0.47 0.25 263);
-  --primary-ink: oklch(0.5 0.25 263); /* darker blue for text on white (>=7:1) */
+  --primary-ink: oklch(
+    0.5 0.25 263
+  ); /* darker blue for text on white (>=7:1) */
   --on-primary: oklch(0.995 0 0);
   --ring: oklch(0.55 0.24 263);
 
@@ -151,10 +153,22 @@
     font-variant-numeric: tabular-nums;
   }
   .grid-backdrop {
-    background-image: radial-gradient(circle at center, var(--border) 1px, transparent 1px);
+    background-image: radial-gradient(
+      circle at center,
+      var(--border) 1px,
+      transparent 1px
+    );
     background-size: 28px 28px;
-    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
-    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      #000 30%,
+      transparent 75%
+    );
+    mask-image: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      #000 30%,
+      transparent 75%
+    );
   }
   .reveal {
     animation: reveal 0.7s var(--ease-out-expo) both;

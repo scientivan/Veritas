@@ -8,7 +8,7 @@ import { VerifiedContracts } from "@/components/VerifiedContracts";
 import { buttonClasses } from "@/components/ui/Button";
 
 export const metadata: Metadata = {
-  title: "Pools · Veritas Protocol",
+  title: "Pools · Veritas",
   description:
     "Browse content-asset pools and their live Dilution Risk Scores.",
 };

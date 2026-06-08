@@ -10,6 +10,8 @@ const TITLES: Record<string, string> = {
   "0x1105152961f82de0774f53cf7164180584a12d4e7449a3f9bf636d285dac881c": "Forest Scene",
   "0x2cd1bffbf7ffca4bf7827d1c9d6722bd02080dd3e852e37bfc63beeb6ca5900e": "Urban Shot",
   "0x224e1cadba8dfbee555ead7d55e5a5b76e0e638b07fbda93a4d8c98979d5fecf": "Landscape",
+  // Graduated demo launchpad pool
+  "0x1f6ba29ac32a2ea5cc6ef5fd21ea4de3bac982651faa18961f6cdee366da4ab0": "Demo Token",
   // Gated
   "0x627552c29a1413b8d10d928241b3514902f2abfe3d49c838c4093fc9b8c2832a": "AI-Generated Sample",
   "0x7d07e4ea40a445aed2fafb3ebe7559f9a003f691b8e754a1a3a531b04cc5e0a6": "Living-D · Original",

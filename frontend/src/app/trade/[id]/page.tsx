@@ -24,7 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const {id} = await params;
   const pool = isAttestationId(id) ? await getOnChainPool(id) : undefined;
-  return {title: pool ? `Trade ${pool.title} · Veritas Protocol` : "Trade · Veritas Protocol"};
+  return {title: pool ? `Trade ${pool.title} · Veritas` : "Trade · Veritas"};
 }
 
 export default async function TradePage({params}: {params: Promise<{id: string}>}) {

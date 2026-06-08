@@ -93,7 +93,7 @@ export const Closing: React.FC = () => {
             letterSpacing: -2,
           }}
         >
-          Veritas Protocol
+          Veritas
         </div>
         <div style={{fontFamily: FONT.display, fontSize: 16, color: COLORS.muted, marginTop: 8}}>
           github.com/Scientivan/VeritasProtocolv2 · Unichain Sepolia (1301)

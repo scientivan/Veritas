@@ -2,7 +2,7 @@ import {createPublicClient, formatUnits, http} from "viem";
 import {ASSUMED_TOKEN_PRICE_USD} from "./poolMeta";
 import type {Address, Hex} from "viem";
 import {unichainSepolia} from "./chains";
-import {POOL_MANAGER_ADDRESS} from "./contracts";
+import {POOL_MANAGER_ADDRESS, V1_HOOK_ADDRESS} from "./contracts";
 
 /**
  * Real Uniswap v4 pools opened through the Veritas hook (liquidity added + swap
@@ -21,6 +21,15 @@ export interface LivePool {
   token0PriceUsd?: number;
   /** USD price per 1 token1 unit (18-dec). Defaults to ASSUMED_TOKEN_PRICE_USD if absent. */
   token1PriceUsd?: number;
+  /** v4 pool fee in the PoolKey. Defaults to DYNAMIC_FEE_FLAG (0x800000). Launchpad-graduated
+   *  pools use a static fee (3000) set at initialization time. */
+  poolFee?: number;
+  /** Hook address in the PoolKey. Defaults to HOOK_ADDRESS (v2 DRS hook). Launchpad-graduated
+   *  pools were opened by V1_HOOK_ADDRESS and must use that address in their pool key. */
+  hooksAddress?: Address;
+  /** Whether token0 supports permissionless mint(address,uint256). Defaults to true.
+   *  IP tokens deployed by IPTokenFactory have a fixed supply and no public mint. */
+  token0Mintable?: boolean;
 }
 
 const POOLS: LivePool[] = [
@@ -67,6 +76,23 @@ const POOLS: LivePool[] = [
     drsGateThreshold: 8500,
     token0PriceUsd: 1,
     token1PriceUsd: 3000,
+  },
+  // Graduated from the live demo launchpad (seeded to 1000 USDC hardcap).
+  // Pool key: fee=3000 (static, set at launchpad init), hooks=V1_HOOK_ADDRESS.
+  // token0 is an IPToken with fixed supply — no public mint function.
+  {
+    attestationId: "0x1f6ba29ac32a2ea5cc6ef5fd21ea4de3bac982651faa18961f6cdee366da4ab0",
+    poolId: "0xeda24af8dffffdbdec19f7ac7a00cd965624928d6430f3f62d4a50d78702c130",
+    token0: "0xa4DD007F6E1C78af5EeCb3c9C8cBab381961402A",
+    token1: "0xD977AD033490EF42Db9E3B8Fc294425369b5A15a",
+    baseFeeBps: 3000,
+    maxFeeBps: 10000,
+    drsGateThreshold: 8500,
+    token0PriceUsd: 1,
+    token1PriceUsd: 1,
+    poolFee: 3000,
+    hooksAddress: V1_HOOK_ADDRESS,
+    token0Mintable: false,
   },
 ];
 

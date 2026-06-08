@@ -1,172 +1,229 @@
-# Veritas Protocol: Narration Script
+# Veritas: Presentation Narration Script
 
 > Voice delivery: calm, confident, conversational. Not rushed.
-> Total target: under 5 minutes.
-> [ACTION] = on-screen action. [PAUSE] = brief pause for effect.
+> Total target: 5 minutes.
+> [ACTION] = slide advance or step reveal. [PAUSE] = brief pause for effect.
+> The demo recording (Creator Flow, Collector + LP, Living DRS, The Gate) is a SEPARATE video.
+> This narration covers slides 1-17 only.
 
 ---
 
-## [0:00 - 0:32] Animated Intro (Remotion - narrate over animated text)
+## Slide-by-Slide Timing Reference
 
-*On screen: animated text sequence*
-
-> "Creators built a $250 billion economy."
-> "Intermediaries captured most of it. And the LPs who could have backed them?"
-> "They couldn't price the risk."
-> "Veritas changes both. One score. One launchpad. One lifecycle."
-
----
-
-## [0:32 - 0:57] Architecture Overview (Remotion - light narration)
-
-> "Veritas is two systems connected by a single number."
-> "System V1: a trustless fair-launch launchpad where creators tokenize original work, raise capital through a bonding curve, and earn perpetual royalties from every swap."
-> "System V2: a Dilution Risk Score oracle that quantifies content authenticity risk on-chain - and uses it to calibrate the LP fee automatically."
-> "The DRS score is what makes V1 trustworthy and V2 actionable. Without it, neither system is safe to use."
-
----
-
-## [0:57 - 2:22] Screen Recording - Creator Flow
-
-**[ACTION: Open /launch, role = Creator]**
-
-> "Let's start with a creator. They go to the Launchpad."
-> "This is the route a creator takes today without Veritas: upload to a marketplace, sign over rights, hope royalties arrive through a centralized intermediary. Veritas replaces that entire chain."
-
-**[ACTION: Click demo asset button "Unique" (picsum #700, low DRS)]**
-
-> "They drop their original artwork. The oracle takes over."
-> "Off-chain, it fingerprints the image with a perceptual hash, queries a DINOv2 corpus for near-duplicates, and runs an ensemble AI detector - two of three independent operators must co-sign."
-
-[PAUSE - wait for DRS gauge to load]
-
-> "DRS comes back at 1%. D is near zero - no near-copies in the corpus. A is near zero - not AI-generated. This content is original. Continue is enabled."
-
-**[ACTION: Click Continue to Step 2]**
-
-> "Step 2: attest and mint. Two transactions. The DRS is signed onto Unichain by the 2-of-3 quorum. Then the ERC-20 IP token is deployed."
-
-**[ACTION: Approve wallet - Attest tx, then Mint tx]**
-
-> "Both confirmed. The score is permanent, verifiable by anyone. No centralized party can change it."
-
-**[ACTION: Click Continue to Step 3]**
-
-> "Step 3: register. IPLaunchRegistry re-checks DRS on-chain. Below 85%: it passes. This is the gate. A plagiarized image would revert here with DRSTooHigh. No policy. Just code."
-
-**[ACTION: Approve wallet - Register tx]**
-
-**[ACTION: Click Continue to Step 4]**
-
-> "Step 4: open the launchpad. This is where the creator's capital rail opens. Sixty percent goes on the bonding curve for fair price discovery. Thirty percent is locked permanently for the graduated pool. Ten percent to the creator. No insider allocation possible."
-
-**[ACTION: Approve wallet - Open Launchpad tx]**
-
-> "The curve is live."
-
-**[ACTION: Navigate to /creator]**
-
-> "Creator Studio confirms it - bonding curve active. And that royalty rate: 0.20% of every swap, automatically routed to the creator on-chain. No intermediary. Perpetual."
+| Slide | Title | Duration |
+|-------|-------|----------|
+| 1 | Title | 12s |
+| 2 | Problem (5 step-reveals) | 38s |
+| 3 | Transition | 10s |
+| 4 | Why v4 Hooks? | 22s |
+| 5 | V1 Launchpad | 22s |
+| 6 | V2 Oracle | 20s |
+| 7 | Bridge | 15s |
+| 8 | Fee Model | 22s |
+| 9 | Code Spotlight (3 step-reveals) | 28s |
+| 10 | Three Actors | 18s |
+| 11 | Architecture | 16s |
+| 12 | Living DRS | 20s |
+| 13 | Numbers | 16s |
+| 14 | Rubric (5 step-reveals) | 40s |
+| 15 | Contracts and Addresses | 12s |
+| 16 | Call to Action | 16s |
+| 17 | Closing | 10s |
+| **Total** | | **~5:17** |
 
 ---
 
-## [2:22 - 2:30] Title Card (Remotion)
+## [0:00 - 0:12] Slide 1: Title
 
-*On screen: "Collector + LP"*
-
----
-
-## [2:30 - 3:25] Screen Recording - Collector + LP
-
-**[ACTION: Switch to Collector role, go to /market]**
-
-> "Now the collector. The marketplace shows every IP token with its live DRS as a trust signal - before they spend a single dollar."
-
-**[ACTION: Click on Demo IP Token]**
-
-> "Each token has its DRS gauge, the AI-replicability score, and the bonding curve panel. This is price discovery with provenance built in."
-
-**[ACTION: Mint test USDC, enter amount, click Buy]**
-
-> "Real buy on a real bonding curve. Price rises with each purchase. At graduation, liquidity locks permanently - no rug possible after the curve closes."
-
-**[ACTION: Switch to LP role, go to /pools]**
-
-> "Now the LP. This is the side of the market that was broken before Veritas. LPs couldn't commit capital to content pools because they had no way to price dilution risk."
-
-**[ACTION: Click a pool, show pool detail]**
-
-> "The dynamic fee is calibrated by DRS. Lower DRS: lower fee. Higher DRS: higher fee. The mechanism compensates for the impermanent loss that comes from holding a pool of a diluted asset."
-
-**[ACTION: Drag IL simulator slider]**
-
-> "The IL simulator shows the breakeven point: the DRS level at which the fee covers the loss. The LP knows their protection before they commit."
-
-**[ACTION: Click Provide, approve tx]**
-
-> "Real liquidity added. Real Uniswap v4 modifyLiquidity transaction. This pool is now investable - because its risk is visible."
+> "Veritas. Provenance-aware impermanent loss protection, built on Uniswap v4. Two systems. One score. The full creator economy lifecycle, trustless, from original content to deep liquidity."
 
 ---
 
-## [3:25 - 3:33] Title Card (Remotion)
+## [0:12 - 0:50] Slide 2: The Problem
 
-*On screen: "Living DRS - Autonomous On-Chain"*
+*On screen: four data chips, then 5 rows reveal one at a time.*
 
----
+> "The creator economy is broken. And so is LP participation in content pools. Five structural failures."
 
-## [3:33 - 4:00] Screen Recording - Living DRS Proof
+[ACTION: Row 01 appears]
 
-**[ACTION: Navigate to Living-D Original pool]**
+> "Creators locked out of their own IP revenue. The $250 billion creator economy has no trustless capital rail. Royalties route through intermediaries."
 
-> "Now the part that makes this system trustless. The D channel - duplicate density - is not a snapshot taken once at attestation. It lives."
+[ACTION: Row 02 appears]
 
-**[ACTION: Point at dilutionCount value on screen]**
+> "No fair-launch standard. Insider allocation, rug pulls, and no enforced royalties after the initial sale."
 
-> "This asset's dilution count is 2. It got there automatically. When a near-duplicate was attested on Unichain, a Reactive Smart Contract on Lasna detected the NewAttestation event cross-chain. It found the near-duplicates using the on-chain dual-hash scan, and called back to increment the dilution count."
+[ACTION: Row 03 appears]
 
-> "No bot. No cron job. The chain reacted to itself."
+> "Copied and AI content floods the market. No on-chain gate has ever blocked low-originality work from raising capital alongside genuine originals."
 
-> "The dynamic fee for this pool is now higher - because the content has been copied, and IL risk has risen. The LP who provided liquidity here was protected automatically."
+[ACTION: Row 04 appears]
 
----
+> "IL risk from content dilution is invisible on-chain. As copies multiply, scarcity drops, price diverges. The AMM cannot see it, so it cannot price it."
 
-## [4:00 - 4:10] Title Card (Remotion)
+[ACTION: Row 05 appears]
 
-*On screen: "The Gate"*
-
----
-
-## [4:10 - 4:30] Screen Recording - Gate Demo
-
-**[ACTION: Switch to Creator, go to /launch, click "AI-replicated" demo asset]**
-
-> "What happens to content that doesn't pass?"
-
-[PAUSE - DRS gauge loads]
-
-> "DRS above the gate threshold. Continue is disabled. IPLaunchRegistry would revert with DRSTooHigh. This content cannot raise capital. The market is protected."
-
-> "No AI-replicated content. No copied work. The gate is on-chain and enforced by code, not policy."
+> "LPs cannot enter a market they cannot underwrite. Without a priced dilution risk, there is no rational basis to commit capital. TVL in this category is essentially zero."
 
 ---
 
-## [4:30 - 5:00] Closing (Remotion - narrate over animated text)
+## [0:50 - 1:00] Slide 3: Transition
 
-> "Two systems. One score. One lifecycle that was never possible before."
+*On screen: "Two broken markets. One missing primitive."*
 
-> "For creators: a fair-launch launchpad with trustless royalties and no intermediary."
-> "For LPs: impermanent loss protection calibrated from real content-authenticity data, kept alive without a keeper."
-
-> "Original idea. Working on-chain."
-> "Veritas Protocol."
+> "Five failures. One system to address all of them. Two integrated subsystems, one score connecting them."
 
 ---
 
-## Recording tips
+## [1:00 - 1:22] Slide 4: Why v4 Hooks?
 
-- Speak at a natural pace: aim for 130-140 words per minute
-- Don't rush transactions: let on-screen confirmations breathe for 2-3 seconds
-- If a tx takes longer than expected, fill with commentary about what is happening on-chain
-- Record each screen segment in one continuous take if possible
-- Name segments: `seg2-creator.mp4`, `seg4-collector-lp.mp4`, `seg6-living-drs.mp4`, `seg8-gate.mp4`
-- Drop them into `demo-video/public/` then render: `cd demo-video && npx remotion render src/index.ts VeritasDemo out/veritas-demo.mp4`
+*On screen: three hook permission cards.*
+
+> "V4 hooks are not an optimization. They are the structural primitive that makes this impossible to replicate in v3. BeforeSwapDelta overrides AMM pricing entirely: the bonding curve runs inside the hook, no separate liquidity pool needed. afterSwap enforces perpetual royalties on every swap with no bypass. The DYNAMIC_FEE flag lets the hook update the LP fee on every swap from a live registry read. No redeployment. No governance."
+
+---
+
+## [1:22 - 1:44] Slide 5: V1 - IP Launchpad
+
+*On screen: four-phase list, bonding curve chart, stats grid.*
+
+> "System V1: the IP Launchpad. Creator mints an ERC-20 via IPTokenFactory. Fixed 60-30-10 split: 60 percent on the bonding curve, 30 locked for the graduated pool, 10 to the creator. No insider allocation possible. Quadratic price discovery via BeforeSwapDelta. When hardcap is hit, the curve closes permanently and liquidity locks into a Uniswap v4 pool. 0.20 percent royalty on every swap after graduation, enforced in afterSwap, perpetual."
+
+---
+
+## [1:44 - 2:04] Slide 6: V2 - DRS Oracle
+
+*On screen: noisy-OR formula, D and A breakdown, oracle pipeline.*
+
+> "System V2: the DRS Oracle. DRS equals 1 minus (1 minus D) times (1 minus A). Noisy-OR: if either channel is clean, neither alone can clear the score. D is duplicate density from DINOv2 cosine similarity against a sqlite-vec corpus. A is AI replicability from SMOGY and ai-source-detector. Three independent operators each sign. 2-of-3 EIP-712 quorum. Single-sig submission reverts on-chain."
+
+---
+
+## [2:04 - 2:19] Slide 7: Bridge
+
+*On screen: V2 and V1 connected through IPLaunchRegistry gate.*
+
+> "The bridge: IPLaunchRegistry. V2 is not a companion system. It is the prerequisite and the ongoing guardian of V1. registerIP reverts if DRS is 85 percent or above. No policy, no admin, no bypass. After graduation, getCurrentDRS still drives the dynamic fee on every swap. V2 guards V1 for its entire lifetime."
+
+---
+
+## [2:19 - 2:41] Slide 8: LP Fee = f(DRS)
+
+*On screen: formula box left, four fee example rows right.*
+
+> "The LP fee is not a parameter you set at deployment. It is a function evaluated on every swap from a live registry read. Base is 0.30 percent. Max is 1.00 percent. DRS 0: base fee, no dilution detected. DRS 30 percent: fee rises to 0.51 percent. DRS 60 percent: 0.72 percent. The LP who provides liquidity knows their protection before they commit, and it adjusts automatically as the content's real-world dilution changes. At 85 percent: the pool was never created."
+
+---
+
+## [2:41 - 3:09] Slide 9: Code Spotlight
+
+*On screen: three code blocks, one per step reveal.*
+
+> "The implementation speaks for itself."
+
+[ACTION: Block 1 appears - getCurrentDRS]
+
+> "getCurrentDRS in VeritasRegistry: saturateD converts dilutionCount to effective D. Noisy-OR in pure integer math. Readable by any contract on any swap."
+
+[ACTION: Block 2 appears - registerIP]
+
+> "registerIP in IPLaunchRegistry: if DRS is 8500 or above, it reverts DRSTooHigh. No policy. Just code."
+
+[ACTION: Block 3 appears - _getDynamicFee]
+
+> "_getDynamicFee in VeritasHook: fee scales linearly with DRS, read fresh from the registry on every swap. As dilutionCount rises, the fee rises automatically."
+
+---
+
+## [3:09 - 3:27] Slide 10: Three Actors
+
+*On screen: Creator, Collector, LP cards.*
+
+> "Three actors aligned by one score. Creator: attests original content, mints the IP token, earns royalties on every swap forever. Collector: buys on the curve with DRS as a trust signal before any purchase. LP: provides liquidity knowing the fee is calibrated to the actual content risk and self-adjusts as that risk changes."
+
+---
+
+## [3:27 - 3:43] Slide 11: Architecture
+
+*On screen: full on-chain and off-chain stack.*
+
+> "Five contracts on Unichain Sepolia. Off-chain oracle service with DINOv2, SMOGY, and ai-source-detector. DilutionMonitorRSC cross-chain on Reactive Lasna. VeritasRegistryCallback receives the cross-chain signal. The whole stack is live and source-verified."
+
+---
+
+## [3:43 - 4:03] Slide 12: Living DRS
+
+*On screen: four-step sequence, before-and-after proof panel.*
+
+> "D updates itself. No keeper needed. Near-duplicate attested on Unichain. DilutionMonitorRSC on Reactive Lasna fires immediately on the NewAttestation event cross-chain. It calls back to VeritasRegistryCallback, which increments dilutionCount. saturateD converts that count to effective D. getCurrentDRS is now higher. The LP fee rises on the very next swap. Proven live: dilutionCount raised 0 to 2 with zero off-chain infrastructure."
+
+---
+
+## [4:03 - 4:19] Slide 13: Numbers
+
+*On screen: four proof cards with count-up animation.*
+
+> "It works. 81 tests passing: unit, integration, and 8 cross-chain tests in ReactiveIntegration.t.sol. 5 contracts deployed and source-verified on Unichain Sepolia. 2-of-3 quorum proven on-chain: single-sig submissions revert. DilutionMonitorRSC proven: dilutionCount raised 0 to 2 cross-chain with no keeper."
+
+---
+
+## [4:19 - 4:59] Slide 14: Rubric
+
+*On screen: five criteria rows, one per step reveal.*
+
+> "Built for the rubric."
+
+[ACTION: Row 1 appears - Original Idea 30%]
+
+> "Original idea: 30 percent. First v4 hook to price impermanent loss from off-chain content-authenticity data. DRS as noisy-OR is novel in DeFi. Peer-reviewed grounding: Mekacher et al., Scientific Reports 2022."
+
+[ACTION: Row 2 appears - Unique Execution 25%]
+
+> "Unique execution: 25 percent. Living D via Reactive Network RSC with no keeper. 2-of-3 quorum. Bonding-curve graduation. Dynamic fee calibrated to a live off-chain signal. Two fully integrated systems, not one hook with a parameter."
+
+[ACTION: Row 3 appears - Impact 20%]
+
+> "Impact: 20 percent. Unlocks the full creator economy lifecycle: verified origination, fair-launch capital, trustworthy LP, all from one score. Currently impossible to build safely without this."
+
+[ACTION: Row 4 appears - Functionality 15%]
+
+> "Functionality: 15 percent. 81 tests, 5 live contracts, proven cross-chain, real oracle with on-chain attest, real swaps on Unichain Sepolia. Not a prototype: a working system."
+
+[ACTION: Row 5 appears - Presentation 10%]
+
+> "Presentation: 10 percent. This deck, 17 slides with full narration. A separate demo video covers all four flows: Creator, Collector plus LP, Living DRS, and The Gate. On-chain proof replaces claims."
+
+---
+
+## [4:59 - 5:11] Slide 15: Contracts and Addresses
+
+*On screen: all deployed contract addresses grouped by V1, V2, Bridge, RSC.*
+
+> "Deployed, verified, live. Every address on this slide is source-verified on sepolia.uniscan.xyz right now. DilutionMonitorRSC live on Lasna at reactscan.net. Every transaction hash exists."
+
+---
+
+## [5:11 - 5:27] Slide 16: Call to Action
+
+*On screen: run-it-yourself steps, verify on-chain links.*
+
+> "Run it yourself. cd oracle, npm run dev. cd frontend, npm run dev --webpack. Navigate to /launch, click Unique. Watch a real DRS score arrive from a live oracle. Run forge test: 81 pass. The demo video is available separately and shows every flow end to end: attest, mint, launch, buy, LP, Living DRS proof, and the Gate blocking AI-replicated content."
+
+---
+
+## [5:27 - 5:37] Slide 17: Closing
+
+*On screen: Veritas logo, closing chips.*
+
+> "Two systems. One score. The missing risk infrastructure for the creator economy. Original idea. Working on-chain. Veritas."
+
+---
+
+## Delivery tips
+
+- Speak at 130-140 words per minute
+- Step-reveal slides: advance the next step at the end of its narration sentence, not before
+- For the fee model slide (8): pause briefly after each fee example row renders to let the bar animate
+- Living DRS slide (12): slow down on "No keeper" - it is the key technical differentiator
+- Don't rush slide 4 (Why v4 Hooks): this is the technical credibility moment
+- Total with normal pauses and breathing: approximately 5:15 to 5:30

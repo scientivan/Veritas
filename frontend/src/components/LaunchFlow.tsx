@@ -228,8 +228,7 @@ export function LaunchFlow() {
         openedAt: Date.now(),
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.step, state.poolId, state.ipTokenAddress, state.attestationId, state.ipIsToken0, addLaunchpad]);
+  }, [state.step, state.poolId, state.ipTokenAddress, state.attestationId, state.ipIsToken0, tokenName, tokenSymbol, hardCap, addLaunchpad]);
 
   // Kick off a real oracle analysis (preview, no wallet, no chain).
   const startAnalyze = useCallback(async (s: Subject) => {
