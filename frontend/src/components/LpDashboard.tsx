@@ -11,7 +11,14 @@ import {Button} from "./ui/Button";
 import {dynamicFeeBps} from "@/lib/drs";
 import {useLpPositions} from "@/hooks/useLpPositions";
 import {getLivePool} from "@/lib/livePools";
-import {LIQUIDITY_ROUTER_ADDRESS, POOL_MANAGER_ADDRESS, STATE_VIEW_ADDRESS} from "@/lib/contracts";
+import {
+  LIQUIDITY_ROUTER_ADDRESS,
+  POOL_MANAGER_ADDRESS,
+  STATE_VIEW_ADDRESS,
+  V1_HOOK_ADDRESS,
+  V1_SWAP_ROUTER_ADDRESS,
+  RAISE_TOKEN_ADDRESS,
+} from "@/lib/contracts";
 import {
   TEST_ERC20_ABI,
   ROUTER_ABI,
@@ -23,6 +30,9 @@ import {
   estimateToken1,
   POOL_MANAGER_ABI_SLICE,
 } from "@/lib/liquidity";
+import {buildLaunchpadKey} from "@/lib/launchpad";
+import {buildCurveSwapParams} from "@/lib/curve";
+import {POOL_SWAP_TEST_ABI, SWAP_TEST_SETTINGS} from "@/lib/swap";
 import {ASSUMED_TOKEN_PRICE_USD} from "@/lib/poolMeta";
 import {formatFeeBps, formatUsd, cn} from "@/lib/utils";
 
@@ -35,6 +45,19 @@ export function LpDashboard({pool}: {pool: Pool}) {
   const [inputAmt, setInputAmt] = useState("1");
 
   const livePool = getLivePool(pool.id);
+
+  // A graduated bonding-curve pool (opened by the v1 hook) pairs a FIXED-SUPPLY IP
+  // token with USDC. That IP token has no public mint(), so an LP can't get it by
+  // minting; they must buy it from the live pool. We detect these pools by their
+  // hook address and acquire the IP side via a swap before providing.
+  const isLaunchpadPool =
+    !!livePool && livePool.hooksAddress?.toLowerCase() === V1_HOOK_ADDRESS.toLowerCase();
+  // The IP token is whichever side of the pair is not the raise token (USDC).
+  const ipToken = livePool
+    ? livePool.token0.toLowerCase() === RAISE_TOKEN_ADDRESS.toLowerCase()
+      ? livePool.token1
+      : livePool.token0
+    : undefined;
 
   // Pool-level reads: TVL balances + current price. Always enabled when pool exists.
   const {data: poolData, refetch: refetchPool} = useReadContracts({
@@ -57,6 +80,8 @@ export function LpDashboard({pool}: {pool: Pool}) {
             {address: livePool.token1, abi: TEST_ERC20_ABI, functionName: "balanceOf" as const, args: [address]},
             {address: livePool.token0, abi: TEST_ERC20_ABI, functionName: "allowance" as const, args: [address, LIQUIDITY_ROUTER_ADDRESS]},
             {address: livePool.token1, abi: TEST_ERC20_ABI, functionName: "allowance" as const, args: [address, LIQUIDITY_ROUTER_ADDRESS]},
+            // USDC allowance to the v1 swap router, used to buy the IP token on launchpad pools.
+            {address: RAISE_TOKEN_ADDRESS, abi: TEST_ERC20_ABI, functionName: "allowance" as const, args: [address, V1_SWAP_ROUTER_ADDRESS]},
           ]
         : [],
     query: {enabled: !!livePool && !!address},
@@ -76,6 +101,11 @@ export function LpDashboard({pool}: {pool: Pool}) {
   const bal1 = (userData?.[1]?.result as bigint | undefined) ?? 0n;
   const allow0 = (userData?.[2]?.result as bigint | undefined) ?? 0n;
   const allow1 = (userData?.[3]?.result as bigint | undefined) ?? 0n;
+  const allowSwapRaise = (userData?.[4]?.result as bigint | undefined) ?? 0n;
+
+  // USDC spent to acquire IP tokens on a graduated launchpad pool. Enough IP to
+  // provide the default position size several times over.
+  const IP_BUY_USDC = parseEther("50");
 
   // Parse amount input and compute liquidity delta from x*y=k: L = amount0 * sqrtPrice.
   let inputWei = 0n;
@@ -131,20 +161,45 @@ export function LpDashboard({pool}: {pool: Pool}) {
   async function mintTokens() {
     if (!address) return;
     try {
-      if (livePool!.token0Mintable !== false) {
-        setBusy("Minting token 0…");
-        await wait(
-          await writeContractAsync({address: livePool!.token0, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
-        );
-      }
-      setBusy("Minting token 1…");
+      // The raise token (USDC) is always a mintable test token; mint plenty.
+      setBusy("Minting USDC…");
       await wait(
-        await writeContractAsync({address: livePool!.token1, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
+        await writeContractAsync({address: RAISE_TOKEN_ADDRESS, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
       );
-      toast.success("Minted test tokens", {description: "10 000 test tokens minted to your wallet."});
+
+      if (isLaunchpadPool && ipToken) {
+        // Fixed-supply IP token: acquire it by buying from the graduated pool with
+        // some of the freshly minted USDC, so the LP holds both sides to provide.
+        const {key, ipIsToken0} = buildLaunchpadKey(ipToken);
+        if (allowSwapRaise < IP_BUY_USDC) {
+          setBusy("Approving USDC…");
+          await wait(
+            await writeContractAsync({address: RAISE_TOKEN_ADDRESS, abi: TEST_ERC20_ABI, functionName: "approve", args: [V1_SWAP_ROUTER_ADDRESS, MAX_UINT256]})
+          );
+        }
+        setBusy("Buying IP tokens…");
+        await wait(
+          await writeContractAsync({
+            address: V1_SWAP_ROUTER_ADDRESS,
+            abi: POOL_SWAP_TEST_ABI,
+            functionName: "swap",
+            args: [key, buildCurveSwapParams(ipIsToken0, "buy", IP_BUY_USDC), SWAP_TEST_SETTINGS, "0x"],
+          })
+        );
+        toast.success("Ready to provide", {description: "Minted USDC and bought IP tokens. You now hold both sides of the pair."});
+      } else {
+        // v2 dynamic-fee pool: both tokens are mintable test tokens.
+        if (livePool!.token0Mintable !== false) {
+          setBusy("Minting token 0…");
+          await wait(
+            await writeContractAsync({address: livePool!.token0, abi: TEST_ERC20_ABI, functionName: "mint", args: [address, MINT_AMOUNT]})
+          );
+        }
+        toast.success("Minted test tokens", {description: "10 000 test tokens minted to your wallet."});
+      }
       await refetch();
     } catch (e) {
-      toast.error("Mint failed", {description: msg(e)});
+      toast.error("Couldn't get tokens", {description: msg(e)});
     } finally {
       setBusy(null);
     }
@@ -210,8 +265,9 @@ export function LpDashboard({pool}: {pool: Pool}) {
     <div className="rounded-2xl border border-border bg-surface/40 p-5">
       <h3 className="text-sm font-medium text-ink">Liquidity</h3>
       <p className="mt-1 text-xs leading-relaxed text-muted">
-        Real Uniswap v4 actions on testnet. Mint the pool&apos;s test tokens, then add or remove
-        liquidity, each step is an on-chain transaction.
+        {isLaunchpadPool
+          ? "Real Uniswap v4 actions on testnet. Get test tokens (mints USDC and buys IP from the graduated pool), then add or remove liquidity, each step is an on-chain transaction."
+          : "Real Uniswap v4 actions on testnet. Mint the pool's test tokens, then add or remove liquidity, each step is an on-chain transaction."}
       </p>
 
       <dl className="mt-4 flex flex-col gap-2 text-sm">
@@ -252,12 +308,12 @@ export function LpDashboard({pool}: {pool: Pool}) {
             </div>
 
             <Button variant="secondary" className="w-full" onClick={mintTokens} disabled={!!busy}>
-              {busy?.startsWith("Minting") ? (
+              {busy?.startsWith("Minting") || busy?.startsWith("Buying") || busy === "Approving USDC…" ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
                 <Coins className="size-4" aria-hidden />
               )}
-              Mint test tokens (10 000 each)
+              {isLaunchpadPool ? "Get test tokens (mint USDC + buy IP)" : "Mint test tokens (10 000 each)"}
             </Button>
             <div className="grid grid-cols-2 gap-2">
               <Button className="w-full" onClick={provide} disabled={!!busy || !hasTokens || !inputValid}>
@@ -275,7 +331,11 @@ export function LpDashboard({pool}: {pool: Pool}) {
             </div>
             {busy && <p className="text-center text-xs text-muted">{busy}</p>}
             {!hasTokens && !busy && (
-              <p className="text-center text-xs text-faint">Mint test tokens first to provide.</p>
+              <p className="text-center text-xs text-faint">
+                {isLaunchpadPool
+                  ? "Get test tokens first (mints USDC and buys IP from the pool) to provide."
+                  : "Mint test tokens first to provide."}
+              </p>
             )}
           </div>
         ) : (

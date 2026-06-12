@@ -2,7 +2,8 @@ import {createPublicClient, formatUnits, http} from "viem";
 import {ASSUMED_TOKEN_PRICE_USD} from "./poolMeta";
 import type {Address, Hex} from "viem";
 import {unichainSepolia} from "./chains";
-import {POOL_MANAGER_ADDRESS} from "./contracts";
+import {POOL_MANAGER_ADDRESS, V1_HOOK_ADDRESS, RAISE_TOKEN_ADDRESS} from "./contracts";
+import {BASE_FEE_BPS, MAX_FEE_BPS} from "./drs";
 
 /**
  * Real Uniswap v4 pools opened through the Veritas hook (liquidity added + swap
@@ -32,8 +33,25 @@ export interface LivePool {
   token0Mintable?: boolean;
 }
 
-// Seed data cleared: all pools now derive from on-chain IPRegistered events.
-const POOLS: LivePool[] = [];
+/**
+ * Graduated launchpad pools. Each entry is added here once the bonding curve
+ * reaches hardCap and _migrateToCLMM fires on-chain.
+ */
+const POOLS: LivePool[] = [
+  {
+    // Attested 2026-06-12, graduated via SeedNewPool (wallets 1001-1062)
+    attestationId: "0x29bf34507b23c75445be7234f2c7fa27710f572790856f7b8a56967478c2df80",
+    poolId:        "0xa9a95a8a0f08bc89598ea0b81e47f4cfdfc1228512c112436e6b72f4632573ec",
+    token0:        "0xbE2c9dcd07F5c88728C05061Cb0BA6164fb73Af7", // IP token (currency0, addr < USDC)
+    token1:        RAISE_TOKEN_ADDRESS,                              // mock USDC (currency1)
+    poolFee:       3000,          // bonding-curve pools use static fee, not dynamic-fee flag
+    hooksAddress:  V1_HOOK_ADDRESS,
+    baseFeeBps:    BASE_FEE_BPS,
+    maxFeeBps:     MAX_FEE_BPS,
+    drsGateThreshold: 8500,
+    token0Mintable: false,        // IP token has fixed supply; user must buy on curve first
+  },
+];
 
 const BY_ATTESTATION = new Map(POOLS.map((p) => [p.attestationId.toLowerCase(), p]));
 
