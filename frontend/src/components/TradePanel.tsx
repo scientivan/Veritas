@@ -225,7 +225,7 @@ export function TradePanel({
       <h3 className="text-sm font-medium text-ink">Trade</h3>
       <p className="mt-1 text-xs leading-relaxed text-muted">
         Real Uniswap v4 swaps on testnet, routed through the DRS-calibrated
-        hook. Mint test tokens, then buy or sell — each is an on-chain
+        hook. Mint test tokens, then buy or sell, each is an on-chain
         transaction.
       </p>
 
@@ -237,7 +237,7 @@ export function TradePanel({
               ? priceEth >= 1
                 ? priceEth.toFixed(2)
                 : priceEth.toFixed(6)
-              : "—"
+              : "-"
           }
         />
         {isConnected && (

@@ -83,7 +83,7 @@ contract IntegrationTest is VeritasTestBase {
         vm.prank(creator);
         PoolId pidB = hook.registerPool(keyB, idB, BASE_FEE, MAX_FEE, GATE);
         manager.initialize(keyB, SQRT_PRICE_1_1);
-        assertEq(hook.previewLpFee(pidB), 7200); // 0.72% — riskier content, higher LP compensation
+        assertEq(hook.previewLpFee(pidB), 7200); // 0.72%: riskier content, higher LP compensation
 
         // B's fee must exceed A's (the whole point: risk is priced).
         assertGt(hook.previewLpFee(pidB), hook.previewLpFee(pidA));

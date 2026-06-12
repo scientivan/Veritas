@@ -6,7 +6,7 @@ p1_count: 3
 timestamp: 2026-06-05T01-13-38Z
 slug: frontend-src-components-cursorwave-tsx
 ---
-# Critique — Background Design & Interactivity
+# Critique: Background Design & Interactivity
 
 Scope: CursorWave ambient background + interactive layer (hero gauge tabs, theme toggle, DRS gauge, buttons, reveal motion). Detector clean (0 findings). No live browser pass (no browser tool in session).
 
@@ -26,7 +26,7 @@ Scope: CursorWave ambient background + interactive layer (hero gauge tabs, theme
 | 10 | Help & Documentation | 3 | Outcome copy explains gate/fee inline |
 
 ## Anti-Patterns Verdict
-Not SaaS-slop — typography/color/copy clearly authored. BUT falls into the one trap the brief swore off: full-viewport animated blue cursor-trailing glow (CursorWave.tsx:72-76) + backdrop-blur glass hero card (HeroGauge.tsx:22). DESIGN.md bans blue glow + web3 decoration; PRODUCT.md anti-references ban glassmorphism + purple/blue glow. Reads as "generic dApp" to skeptical VC before they read the DRS argument. Detector clean but cannot encode project's self-imposed anti-glow/anti-glass rules.
+Not SaaS-slop: typography/color/copy clearly authored. BUT falls into the one trap the brief swore off: full-viewport animated blue cursor-trailing glow (CursorWave.tsx:72-76) + backdrop-blur glass hero card (HeroGauge.tsx:22). DESIGN.md bans blue glow + web3 decoration; PRODUCT.md anti-references ban glassmorphism + purple/blue glow. Reads as "generic dApp" to skeptical VC before they read the DRS argument. Detector clean but cannot encode project's self-imposed anti-glow/anti-glass rules.
 
 ## What's Working
 - Reduced-motion + visibility discipline (canvas static frame, visibilitychange pause, useReducedMotion in gauge, global CSS fallback).
@@ -35,9 +35,9 @@ Not SaaS-slop — typography/color/copy clearly authored. BUT falls into the one
 
 ## Priority Issues
 - [P1] CursorWave = project's own banned blue glow + decorative motion conveying no state; rAF never settles (constant repaint, battery). Fix: cut, OR demote to static texture (.grid-backdrop already exists, unused), OR settle-to-rest + remove radial glow.
-- [P1] Glassmorphism on hero gauge card (bg-surface/60 backdrop-blur-sm) — banned pattern. Fix: make opaque, elevation via surface-lightness + hairline.
-- [P1] Hero gauge tabs are half-implemented ARIA tab pattern: no roving tabindex/arrow keys, no aria-controls/tabpanel, no aria-live on gauge update — silent tier change for SR. Fix: full pattern OR switch to aria-pressed toggle buttons + aria-live region.
-- [P2] Dead --wave-alpha token (globals.css:32) — defined + commented but never read by CursorWave (hardcoded alphas). Fix: read it, or delete.
+- [P1] Glassmorphism on hero gauge card (bg-surface/60 backdrop-blur-sm), banned pattern. Fix: make opaque, elevation via surface-lightness + hairline.
+- [P1] Hero gauge tabs are half-implemented ARIA tab pattern: no roving tabindex/arrow keys, no aria-controls/tabpanel, no aria-live on gauge update, silent tier change for SR. Fix: full pattern OR switch to aria-pressed toggle buttons + aria-live region.
+- [P2] Dead --wave-alpha token (globals.css:32), defined + commented but never read by CursorWave (hardcoded alphas). Fix: read it, or delete.
 - [P2] Motion budget at first paint (reveal + gauge roll + infinite ping + infinite wave) vs "calm authority." Fix: keep gauge roll, demote the rest.
 - [P2] Tabs ~32px (<44px touch min), weak inactive hover; background interactivity is pointer/desktop-only, costs mobile battery for no payoff. Fix: ≥40px tabs + hover bg; static texture for bg.
 
@@ -49,5 +49,5 @@ Not SaaS-slop — typography/color/copy clearly authored. BUT falls into the one
 ## Minor Observations
 - useEffect([theme]) rebuilds whole canvas on every toggle.
 - reduce captured once at mount; won't react to mid-session OS change.
-- .grid-backdrop utility unused — ready-made static alternative.
+- .grid-backdrop utility unused, ready-made static alternative.
 - Button active:translate-y-px press micro-interaction is good.

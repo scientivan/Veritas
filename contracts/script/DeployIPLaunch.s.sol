@@ -6,7 +6,7 @@ import {IVeritasRegistry} from "../src/interfaces/IVeritasRegistry.sol";
 import {IPLaunchRegistry} from "../src/IPLaunchRegistry.sol";
 
 /**
- * @notice Deploys IPLaunchRegistry — the DRS-gated IP token registry that bridges
+ * @notice Deploys IPLaunchRegistry, the DRS-gated IP token registry that bridges
  *         the v2 DRS attestation system with the v1 IP tokenization / bonding curve
  *         launchpad infrastructure.
  *

@@ -75,7 +75,7 @@ export function PortfolioDashboard() {
   /* ── Collection (IP-token holdings) ────────────────────────────── */
   const candidates = useMemo<HoldingCandidate[]>(() => {
     const map = new Map<string, HoldingCandidate>();
-    // Launchpad tokens (active curve or graduated) — the collector buys these.
+    // Launchpad tokens (active curve or graduated), the collector buys these.
     for (const e of launchpadEntries) {
       if (e.phase === LaunchpadPhase.INACTIVE) continue;
       const key = e.tokenAddress.toLowerCase();
@@ -174,11 +174,11 @@ export function PortfolioDashboard() {
         <SummaryCard label="Collection value (sim.)" value={formatUsd(collectionValue)} icon={<ArrowUpRight className="size-4" />} />
       </div>
 
-      {/* Section 1 — Liquidity positions */}
+      {/* Section 1: Liquidity positions */}
       <section>
         <SectionTitle
           title="My liquidity"
-          subtitle="Pools you've provided liquidity to, with each one's live Dilution Risk Score and DRS-calibrated fee. The fee rises automatically as dilution risk climbs — your built-in IL compensation."
+          subtitle="Pools you've provided liquidity to, with each one's live Dilution Risk Score and DRS-calibrated fee. The fee rises automatically as dilution risk climbs, your built-in IL compensation."
         />
         {myPositions.length === 0 ? (
           <EmptyState
@@ -247,11 +247,11 @@ export function PortfolioDashboard() {
         )}
       </section>
 
-      {/* Section 2 — Collection */}
+      {/* Section 2: Collection */}
       <section>
         <SectionTitle
           title="My collection"
-          subtitle="Every IP token you hold — bought on a bonding curve or in a graduated pool — valued from live curve / pool state."
+          subtitle="Every IP token you hold, bought on a bonding curve or in a graduated pool, valued from live curve / pool state."
         />
         {holdings.length === 0 ? (
           <EmptyState
@@ -282,7 +282,7 @@ export function PortfolioDashboard() {
                 </div>
                 <div className="text-right">
                   <p className="font-mono text-sm tabular-nums text-ink">
-                    {h.valueUsd != null ? formatUsd(h.valueUsd) : "—"}
+                    {h.valueUsd != null ? formatUsd(h.valueUsd) : "-"}
                   </p>
                   <p className="text-[11px] text-muted">{h.tokens.toFixed(2)} tokens</p>
                 </div>
@@ -293,7 +293,7 @@ export function PortfolioDashboard() {
         )}
       </section>
 
-      {/* Section 3 — Trade history */}
+      {/* Section 3: Trade history */}
       <section>
         <SectionTitle
           title="Trade history"
@@ -354,7 +354,7 @@ export function PortfolioDashboard() {
         )}
       </section>
 
-      {/* Section 4 — IL protection simulator */}
+      {/* Section 4: IL protection simulator */}
       <SimulatorSection
         simChoices={simChoices}
         simPool={simPool}
@@ -418,7 +418,7 @@ function SimulatorSection({
     <section>
       <SectionTitle
         title="IL protection simulator"
-        subtitle="Estimate whether the dynamic fee compensates for impermanent loss as DRS rises — the protocol's core thesis: higher dilution risk means a higher fee that protects LP returns."
+        subtitle="Estimate whether the dynamic fee compensates for impermanent loss as DRS rises, the protocol's core thesis: higher dilution risk means a higher fee that protects LP returns."
       />
 
       {simChoices.length > 0 && (

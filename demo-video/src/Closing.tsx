@@ -5,7 +5,7 @@ import {COLORS, FONT} from "./theme";
 const WINS = [
   {label: "Original Idea (30%)", value: "First v4 hook pricing IL from content-authenticity data"},
   {label: "Unique Execution (25%)", value: "2-of-3 oracle quorum · Reactive living-D · bonding curve + graduation"},
-  {label: "Impact (20%)", value: "Complete creator economy lifecycle — gate, launch, trade, protect"},
+  {label: "Impact (20%)", value: "Complete creator economy lifecycle: gate, launch, trade, protect"},
   {label: "Functionality (15%)", value: "81 passing tests · live on Unichain Sepolia · proven cross-chain"},
 ];
 

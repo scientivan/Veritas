@@ -189,7 +189,7 @@ contract ReactiveIntegrationTest is VeritasTestBase {
         registry.incrementDilutionCount(idA);
         assertEq(registry.getCurrentDRS(idA), 7750);
 
-        // fee = 3000 + 7000 * 0.775 = 8425 — the pool re-priced itself with no oracle update.
+        // fee = 3000 + 7000 * 0.775 = 8425, the pool re-priced itself with no oracle update.
         assertEq(hook.previewLpFee(pid), 8425);
     }
 }

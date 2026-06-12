@@ -22,7 +22,7 @@ export default function LaunchPage() {
             <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
               Verify your artwork, attest its Dilution Risk Score on-chain, and
               mint it into a tradeable ERC-20 token with a bonding-curve
-              launchpad and perpetual royalties — all in one flow. Only content
+              launchpad and perpetual royalties, all in one flow. Only content
               that passes the DRS gate can be tokenized: no copies, no
               AI-generated art.
             </p>

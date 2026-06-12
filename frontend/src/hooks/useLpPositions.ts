@@ -8,7 +8,7 @@ import type {Hex} from "viem";
  *
  * The PoolModifyLiquidityTest router holds positions under its own address (not the
  * end user), so there's no reliable per-wallet position read on-chain. We instead
- * record the net token0 the user has provided through the app — enough to drive a
+ * record the net token0 the user has provided through the app, enough to drive a
  * "My Positions" view. Live pool state (DRS, fee, TVL) is still read on-chain.
  */
 export interface LpPosition {

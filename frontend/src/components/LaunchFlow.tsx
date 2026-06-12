@@ -131,7 +131,7 @@ export function LaunchFlow() {
 
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Step 1 — content + oracle analysis (off-chain preview).
+  // Step 1: content + oracle analysis (off-chain preview).
   const [subject, setSubject] = useState<Subject | null>(null);
   const [analyzed, setAnalyzed] = useState<Analyzed | null>(null);
   const [phase, setPhase] = useState<"idle" | "computing" | "done" | "error">("idle");
@@ -140,14 +140,14 @@ export function LaunchFlow() {
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Step 2/3 — token + registration.
+  // Step 2/3: token + registration.
   const [tokenName, setTokenName] = useState("");
   const [tokenSymbol, setTokenSymbol] = useState("");
   const [tokenSupply, setTokenSupply] = useState("1000000");
   const [ipfsUri, setIpfsUri] = useState("");
   const [flowError, setFlowError] = useState<string | null>(null);
 
-  // Step 4 — launchpad raise target (in raise-token units).
+  // Step 4: launchpad raise target (in raise-token units).
   const [hardCap, setHardCap] = useState("1000");
 
   // Signed attestation, prefetched on Step 1 → 2 so the wallet popup is instant.
@@ -352,7 +352,7 @@ export function LaunchFlow() {
 
     if (resumeId) {
       // Already attested on-chain: attestOnChain detects this and skips the write,
-      // so the pHash/blockHash/sigs are unused — pass zero placeholders.
+      // so the pHash/blockHash/sigs are unused, pass zero placeholders.
       const zero = `0x${"00".repeat(32)}` as Hex;
       attId = await attestOnChain({
         pHash: zero,
@@ -627,10 +627,10 @@ function StepVerify({
   return (
     <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6">
       <div>
-        <h2 className="font-display text-xl font-semibold text-ink">Step 1 — Verify Your Artwork</h2>
+        <h2 className="font-display text-xl font-semibold text-ink">Step 1: Verify Your Artwork</h2>
         <p className="mt-1 text-sm text-muted">
           Upload your visual artwork. The live oracle fingerprints it and computes its Dilution Risk
-          Score. The DRS must be below {formatPct(DRS_GATE)} to tokenize — no copies, no AI-generated
+          Score. The DRS must be below {formatPct(DRS_GATE)} to tokenize: no copies, no AI-generated
           art. Nothing is written on-chain yet.
         </p>
       </div>
@@ -856,7 +856,7 @@ function StepMint({
   return (
     <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6">
       <div>
-        <h2 className="font-display text-xl font-semibold text-ink">Step 2 — Attest & Mint</h2>
+        <h2 className="font-display text-xl font-semibold text-ink">Step 2: Attest & Mint</h2>
         <p className="mt-1 text-sm text-muted">
           Name your IP token. When you continue, two transactions fire back to back: first the DRS
           attestation is signed onto Unichain, then your ERC-20 IP token is deployed.
@@ -866,7 +866,7 @@ function StepMint({
       {resumed && (
         <p className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary-ink">
           <CheckCircle2 className="size-3.5 shrink-0" />
-          Resuming a verified attestation — verification is already on-chain, so we skip straight to
+          Resuming a verified attestation, verification is already on-chain, so we skip straight to
           minting and opening the pool.
         </p>
       )}
@@ -963,7 +963,7 @@ function StepMint({
       </div>
       {isPreparing && (
         <p className="text-xs text-muted">
-          The oracle is signing your DRS in the background — you can fill in the details meanwhile.
+          The oracle is signing your DRS in the background, you can fill in the details meanwhile.
         </p>
       )}
     </div>
@@ -1028,7 +1028,7 @@ function StepRegister({
     <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6">
       <div>
         <h2 className="font-display text-xl font-semibold text-ink">
-          Step 3 — Register in IPLaunchRegistry
+          Step 3: Register in IPLaunchRegistry
         </h2>
         <p className="mt-1 text-sm text-muted">
           Link your IP token to the DRS attestation. The contract re-checks the DRS on-chain before
@@ -1165,10 +1165,10 @@ function StepLaunchpad({
   return (
     <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6">
       <div>
-        <h2 className="font-display text-xl font-semibold text-ink">Step 4 — Open Launchpad</h2>
+        <h2 className="font-display text-xl font-semibold text-ink">Step 4: Open Launchpad</h2>
         <p className="mt-1 text-sm text-muted">
           Open a fair-launch bonding curve so collectors can buy your IP and you raise initial
-          capital — without giving up ownership. The curve auto-graduates to a locked Uniswap v4 pool
+          capital, without giving up ownership. The curve auto-graduates to a locked Uniswap v4 pool
           when the raise target is reached.
         </p>
       </div>
@@ -1208,7 +1208,7 @@ function StepLaunchpad({
       {isOpening && openStatus && (
         <p className="flex items-center gap-2 rounded-lg bg-primary/10 p-3 text-xs text-primary-ink">
           <Loader2 className="size-3.5 animate-spin" />
-          {openStatus} (4 transactions — keep confirming in your wallet)
+          {openStatus} (4 transactions, keep confirming in your wallet)
         </p>
       )}
 

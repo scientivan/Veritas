@@ -210,7 +210,7 @@ export default async function PoolDetail({
                 </div>
                 <p className="text-xs text-muted mb-4">
                   This content was registered via the DRS-gated IPLaunchRegistry. A DRS below 85%
-                  was required at registration — proving originality before any capital was raised.
+                  was required at registration, proving originality before any capital was raised.
                 </p>
                 <dl className="flex flex-col gap-2 text-xs">
                   <div className="flex items-center justify-between">

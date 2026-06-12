@@ -5,8 +5,8 @@ import {V1_HOOK_ADDRESS, RAISE_TOKEN_ADDRESS} from "./contracts";
  * Helpers for the v1 bonding-curve launchpad (VeritasHook at V1_HOOK_ADDRESS).
  *
  * Flow to open a launchpad for a freshly launched IP token:
- *   1. v1 VeritasRegistry.registerIP(token, receiver, uri)  — marks the token verified
- *   2. PoolManager.initialize(key, SQRT_PRICE_1_1)           — hook caches treasury
+ *   1. v1 VeritasRegistry.registerIP(token, receiver, uri)  - marks the token verified
+ *   2. PoolManager.initialize(key, SQRT_PRICE_1_1)           - hook caches treasury
  *   3. IPToken.approve(hook, curveAllocation + lpAllocation)
  *   4. VeritasHook.initializeLaunchpad(key, curve, lp, hardCap, treasury)
  *
@@ -18,7 +18,7 @@ import {V1_HOOK_ADDRESS, RAISE_TOKEN_ADDRESS} from "./contracts";
 export const LAUNCHPAD_FEE = 3000;
 export const LAUNCHPAD_TICK_SPACING = 60;
 
-/** sqrt(1) * 2^96 — neutral init price; the curve bypasses the AMM until graduation. */
+/** sqrt(1) * 2^96: neutral init price; the curve bypasses the AMM until graduation. */
 export const SQRT_PRICE_1_1 = 79228162514264337593543950336n;
 
 export type LaunchpadPoolKey = {

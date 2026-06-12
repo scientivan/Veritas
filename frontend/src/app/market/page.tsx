@@ -1,8 +1,8 @@
-import type {Metadata} from "next";
-import {Nav} from "@/components/Nav";
-import {Footer} from "@/components/Footer";
-import {CollectorTabs} from "@/components/CollectorTabs";
-import {CollectorMarketplace} from "@/components/CollectorMarketplace";
+import type { Metadata } from "next";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { CollectorTabs } from "@/components/CollectorTabs";
+import { CollectorMarketplace } from "@/components/CollectorMarketplace";
 
 export const metadata: Metadata = {
   title: "Marketplace · Veritas",
@@ -19,8 +19,9 @@ export default function MarketplacePage() {
             Marketplace
           </h1>
           <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
-            Collect and trade verified creator IP. Every listing carries a live Dilution Risk Score —
-            you always see how original the work behind the token is before you buy.
+            Collect and trade verified creator IP. Every listing carries a live
+            Dilution Risk Score, you always see how original the work behind
+            the token is before you buy.
           </p>
           <CollectorTabs current="market" />
           <CollectorMarketplace />

@@ -45,7 +45,7 @@ interface IPoolSwapTest {
  *   forge script script/SeedCurve.s.sol --broadcast --rpc-url https://sepolia.unichain.org
  */
 contract SeedCurve is Script {
-    // Contracts — fixed hook (graduation overflow fixed 2026-06-07)
+    // Contracts: fixed hook (graduation overflow fixed 2026-06-07)
     address constant HOOK  = 0xc3CfD4756d8d1B02B57d7b80082c1A95e515A0cc;
     address constant ROUTER = 0xB50cEEC85d58f3925eee5Ea71790577f5a0df831;
     address constant USDC   = 0xD977AD033490EF42Db9E3B8Fc294425369b5A15a;
@@ -61,7 +61,7 @@ contract SeedCurve is Script {
     // MAX_SQRT_PRICE - 1, used as limit for zeroForOne=false buys.
     uint160 constant SQRT_LIMIT = uint160(0xfFfd8963EFd1fC6A506488495d951d5263988d25);
 
-    // Fresh pool — start from wallet 1.
+    // Fresh pool: start from wallet 1.
     uint256 constant START_WALLET = 1;
     // 101 wallets x 9.985 USDC net = 1008.5 USDC > 1000 hardCap; graduation fires partway.
     uint256 constant END_WALLET = 101;
@@ -107,9 +107,9 @@ contract SeedCurve is Script {
             vm.startBroadcast(seedKey);
             IERC20Mint(USDC).approve(ROUTER, type(uint256).max);
             try IPoolSwapTest(ROUTER).swap(key, params, settings, "") {
-                // success — 10 USDC contributed
+                // success: 10 USDC contributed
             } catch {
-                // MaxBuyExceeded (wallet already used) or pool graduated — skip and continue.
+                // MaxBuyExceeded (wallet already used) or pool graduated, skip and continue.
                 vm.stopBroadcast();
                 continue;
             }

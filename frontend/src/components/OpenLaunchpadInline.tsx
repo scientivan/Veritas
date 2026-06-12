@@ -25,7 +25,7 @@ const TOTAL_SUPPLY_ABI = [
 ] as const;
 
 /**
- * Opens a bonding-curve launchpad for an ALREADY-registered IP token, in place —
+ * Opens a bonding-curve launchpad for an ALREADY-registered IP token, in place,
  * no need to re-run Verify / Attest & Mint / Register. Reads the token's supply
  * on-chain, then runs the 4-tx openLaunchpad sequence and persists the result.
  */
@@ -114,7 +114,7 @@ export function OpenLaunchpadInline({
     <div className="rounded-xl border border-dashed border-border bg-bg p-4">
       <p className="text-sm font-medium text-ink">Open a bonding curve</p>
       <p className="mt-1 text-xs text-muted">
-        Let collectors buy this IP on a fair-launch curve and raise initial capital — your token is
+        Let collectors buy this IP on a fair-launch curve and raise initial capital, your token is
         already registered, so this is a one-step action.
       </p>
 

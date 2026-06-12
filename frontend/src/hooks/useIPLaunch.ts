@@ -123,7 +123,7 @@ export function useIPLaunch() {
       try {
         // attestationId = keccak(pHash, blockHash, owner). If this wallet already
         // attested this exact content, the record exists and a fresh attest() would
-        // revert with AlreadyAttested() — so reuse it and skip straight to minting.
+        // revert with AlreadyAttested(), so reuse it and skip straight to minting.
         const exists = (await publicClient.readContract({
           address: REGISTRY_ADDRESS,
           abi: REGISTRY_ABI,
@@ -188,7 +188,7 @@ export function useIPLaunch() {
               break;
             }
           } catch {
-            // Not a TokenCreated log (e.g. the ERC-20 Transfer mint) — skip it.
+            // Not a TokenCreated log (e.g. the ERC-20 Transfer mint), skip it.
           }
         }
 
@@ -230,10 +230,10 @@ export function useIPLaunch() {
 
   /**
    * Open a bonding-curve launchpad for a registered IP token. Four sequential txs:
-   *   1. v1 VeritasRegistry.registerIP  — mark token verified (the v1 hook reads this)
-   *   2. PoolManager.initialize         — open the v4 pool (hook caches the treasury)
-   *   3. IPToken.approve(hook, alloc)    — let the hook pull the curve + LP allocation
-   *   4. VeritasHook.initializeLaunchpad — start the quadratic bonding curve
+   *   1. v1 VeritasRegistry.registerIP  - mark token verified (the v1 hook reads this)
+   *   2. PoolManager.initialize         - open the v4 pool (hook caches the treasury)
+   *   3. IPToken.approve(hook, alloc)    - let the hook pull the curve + LP allocation
+   *   4. VeritasHook.initializeLaunchpad - start the quadratic bonding curve
    *
    * Returns the poolId + token ordering on success (for local persistence), else null.
    */

@@ -70,7 +70,7 @@ export const ScreenSegment: React.FC<Props> = ({ file, label }) => {
         onError={() => setMissing(true)}
       />
 
-      {/* Segment label watermark — top right */}
+      {/* Segment label watermark, top right */}
       <div
         style={{
           position: "absolute",

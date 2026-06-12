@@ -78,7 +78,7 @@ export function CollectorMarketplace() {
           !isGraduated && e.curveA > 0n
             ? curvePrice(e.curveA, e.curveB, e.tokensSold)
             : null;
-        const priceLabel = price != null ? fmtPrice(price) : "—";
+        const priceLabel = price != null ? fmtPrice(price) : "-";
         const badge = isGraduated ? "pool" : "launchpad";
         // Pass the token so the detail page resolves THIS token (an attestation
         // can back several distinct tokens).

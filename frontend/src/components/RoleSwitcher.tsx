@@ -4,9 +4,9 @@ import {useEffect, useState, useRef} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {Palette, TrendingUp, ShoppingBag} from "lucide-react";
 import {cn} from "@/lib/utils";
-import {LINKS_BY_ROLE} from "@/lib/navigation";
+import {DEFAULT_PATH_BY_ROLE, pathBelongsToRole, type Role} from "@/lib/navigation";
 
-export type Role = "creator" | "lp" | "collector";
+export type {Role};
 
 const STORAGE_KEY = "veritas-role";
 const ROLES: Role[] = ["creator", "lp", "collector"];
@@ -28,8 +28,16 @@ export function useRole() {
 
   useEffect(() => {
     if (!isLoaded) return;
-    
-    if (pathname && role && pathname !== prevPathname.current) {
+
+    // Only remember a path under the current role if the page actually belongs
+    // to that role. This prevents cross-role contamination: e.g. landing on a
+    // Creator-only page (/creator, /launch) while the active role is Collector
+    // must never be stored as the Collector's "last path".
+    if (
+      pathname &&
+      pathname !== prevPathname.current &&
+      pathBelongsToRole(pathname, role)
+    ) {
       localStorage.setItem(`veritas-last-path-${role}`, pathname);
       prevPathname.current = pathname;
     }
@@ -38,12 +46,15 @@ export function useRole() {
   const setRole = (r: Role) => {
     localStorage.setItem(STORAGE_KEY, r);
     setRoleState(r);
-    
+
+    // Restore the last page opened in this role, but only if it still belongs
+    // to the role (guards against stale/contaminated storage). Otherwise fall
+    // back to the role's default landing page.
     const lastPath = localStorage.getItem(`veritas-last-path-${r}`);
-    if (lastPath) {
+    if (lastPath && pathBelongsToRole(lastPath, r)) {
       router.push(lastPath);
     } else {
-      router.push(LINKS_BY_ROLE[r][0].href);
+      router.push(DEFAULT_PATH_BY_ROLE[r]);
     }
   };
 

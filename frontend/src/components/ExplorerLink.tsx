@@ -7,7 +7,7 @@ import {cn} from "@/lib/utils";
 type ExplorerType = "address" | "tx" | "block" | "token";
 
 interface ExplorerLinkProps {
-  /** Raw hex value — address (0x…) or tx hash (0x…). */
+  /** Raw hex value: address (0x…) or tx hash (0x…). */
   value: string;
   /** Kind of entity. Defaults to "address". */
   type?: ExplorerType;

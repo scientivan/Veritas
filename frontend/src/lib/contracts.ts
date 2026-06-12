@@ -41,7 +41,7 @@ export const V1_HOOK_ADDRESS: Address = "0xc3CfD4756d8d1B02B57d7b80082c1A95e515A
 export const IP_TOKEN_FACTORY_ADDRESS: Address = "0xFB112b3AdF5d982A1Da4bEB6CD7370A64B98638c";
 /** v1 PoolSwapTest router used for bonding-curve buys. */
 export const V1_SWAP_ROUTER_ADDRESS: Address = "0xB50cEEC85d58f3925eee5Ea71790577f5a0df831";
-/** Mock USDC (18-decimals) — the raise token launchpad buyers pay with. */
+/** Mock USDC (18-decimals): the raise token launchpad buyers pay with. */
 export const RAISE_TOKEN_ADDRESS: Address = "0xD977AD033490EF42Db9E3B8Fc294425369b5A15a";
 export const RAISE_TOKEN_SYMBOL = "USDC";
 

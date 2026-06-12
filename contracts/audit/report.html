@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Veritas — Contract Audit Report</title>
+<title>Veritas: Contract Audit Report</title>
 <style>
   @page { size: A4; margin: 14mm 14mm 12mm 14mm; }
   * { box-sizing: border-box; }
@@ -30,12 +30,12 @@
 </head>
 <body>
 
-<h1>Veritas — Smart-Contract Audit Report</h1>
+<h1>Veritas: Smart-Contract Audit Report</h1>
 <p class="sub">Provenance-Aware Impermanent-Loss Protection · Uniswap v4 hook · UHI9 Hookathon · Generated 2026-06-06 (updated from 2026-06-04)</p>
 
 <div class="lead">
 <b>Scope.</b> Five Solidity contracts + 2 interfaces (1165 LOC) compiled with solc 0.8.26 (Foundry 1.3.5, evm <code>cancun</code>).
-<b>Result:</b> <span class="pill">81 / 81 TESTS PASS</span> &nbsp; Coverage — Lines <b>98.3%</b>, Branches <b>83.8%</b>, Functions <b>98.1%</b> (target ≥ 80%).
+<b>Result:</b> <span class="pill">81 / 81 TESTS PASS</span> &nbsp; Coverage: Lines <b>98.3%</b>, Branches <b>83.8%</b>, Functions <b>98.1%</b> (target ≥ 80%).
 This report maps every security property to the code location enforcing it and the test that proves it, so each row is independently verifiable via <code>forge test --match-test &lt;name&gt;</code>.
 </div>
 
@@ -47,7 +47,7 @@ This report maps every security property to the code location enforcing it and t
 <tr><td class="mono">VeritasHook.sol</td><td class="num">323</td><td>v4 hook: pool gate, DRS-calibrated dynamic fee, LP Insurance Reserve.</td><td>Owner-authenticated creation · dynamic-fee-only · reserve paid to LPs only on a verified dilution event.</td></tr>
 <tr><td class="mono">VeritasRegistryCallback.sol</td><td class="num">65</td><td>Reactive Network destination-chain callback; receives dilution events from RSC and applies on-chain dilution increments.</td><td>Only callable by Reactive Callback Proxy (AbstractCallback.authorizedSenderOnly) · dual-hash Hamming τ=10 · skips frozen records without reverting.</td></tr>
 <tr><td class="mono">reactive/DilutionMonitorRSC.sol</td><td class="num">62</td><td>Reactive Smart Contract (source-chain); subscribes to Registry's NewAttestation events and triggers VeritasRegistryCallback.</td><td>Deployed on Reactive Network · forwards attestation ID via Callback event · no on-chain state mutations.</td></tr>
-<tr><td class="mono">interfaces/ (×2)</td><td class="num">154</td><td>IVeritasOracle, IVeritasRegistry.</td><td>—</td></tr>
+<tr><td class="mono">interfaces/ (×2)</td><td class="num">154</td><td>IVeritasOracle, IVeritasRegistry.</td><td>-</td></tr>
 </table>
 <p class="small"><b>Fee model (both DRS-driven).</b> LP fee = <code>base + (max−base)·DRS/10000</code> (beforeSwap, override flag). Reserve skim = <code>2500·DRS/10000</code> hundredths-bip on swap output (afterSwap, ERC-6909 claims) → donated back to in-range LPs via <code>unlock→donate→settle</code>. Rationale: for a 50/50 CP pool E[IL] ∝ price variance, so DRS-as-volatility-proxy makes the fee a principled IL compensation rate. DRS = noisy-OR combination of off-chain A signal and on-chain D (dilution count), so neither path can be bribed to suppress the final score independently.</p>
 
@@ -69,7 +69,7 @@ This report maps every security property to the code location enforcing it and t
 <tr><td class="mono">Registry</td><td class="num">99.3</td><td class="num">79.2</td><td class="num">100</td></tr>
 <tr><td class="mono">Hook</td><td class="num">97.6</td><td class="num">75.0</td><td class="num">100</td></tr>
 <tr><td class="mono">RegistryCallback</td><td class="num">100</td><td class="num">100</td><td class="num">100</td></tr>
-<tr><td class="mono">DilutionMonitorRSC</td><td class="num">90.9</td><td class="num">—</td><td class="num">100</td></tr>
+<tr><td class="mono">DilutionMonitorRSC</td><td class="num">90.9</td><td class="num">-</td><td class="num">100</td></tr>
 <tr><td><b>Total %</b></td><td class="num"><b>98.3</b></td><td class="num"><b>83.8</b></td><td class="num"><b>98.1</b></td></tr>
 </table>
 </div>
@@ -113,12 +113,12 @@ forge test --match-test test_Callback_DilutesNearDuplicatesOnChain -vvv   # RSC 
 
 <h2>5 · Honest limitations (in scope for the audit)</h2>
 <ul>
-<li><b>Oracle centralization.</b> 2-of-3 is multi-sig, not trustless. Real independence requires each operator to run a <i>different</i> detector ensemble off-chain — enforced operationally, not on-chain.</li>
+<li><b>Oracle centralization.</b> 2-of-3 is multi-sig, not trustless. Real independence requires each operator to run a <i>different</i> detector ensemble off-chain, enforced operationally, not on-chain.</li>
 <li><b>On-chain near-duplicate index is bounded.</b> <code>getNearDuplicates</code> performs an O(n) scan over all attested fingerprints on-chain; this is viable at early corpus sizes but will require pagination or a Merkle-tree index at scale.</li>
-<li><b>DRS is a lagging, ex-ante signal</b> — it prices risk at entry and on updates, not in real time. Acknowledged, not hidden.</li>
-<li><b>Reactive Network trust assumption.</b> The Callback Proxy is a privileged actor in the Reactive Network. <code>authorizedSenderOnly</code> ensures only the proxy can call <code>onDilution</code>, but the proxy itself is a trusted third party — on-chain dilution counts are only as reliable as the Reactive Network's liveness and integrity.</li>
+<li><b>DRS is a lagging, ex-ante signal</b>: it prices risk at entry and on updates, not in real time. Acknowledged, not hidden.</li>
+<li><b>Reactive Network trust assumption.</b> The Callback Proxy is a privileged actor in the Reactive Network. <code>authorizedSenderOnly</code> ensures only the proxy can call <code>onDilution</code>, but the proxy itself is a trusted third party; on-chain dilution counts are only as reliable as the Reactive Network's liveness and integrity.</li>
 <li><b>Deployed to Unichain Sepolia.</b> Oracle, Registry, Hook, VeritasRegistryCallback, and two v4 pools are live on Unichain Sepolia. DilutionMonitorRSC is deployed on the Reactive Network (Kopli testnet). Mainnet deployment is a separate phase.</li>
-<li><b>Not a formal audit.</b> This is a self-authored, test-backed engineering report — no third-party review or formal verification performed.</li>
+<li><b>Not a formal audit.</b> This is a self-authored, test-backed engineering report, no third-party review or formal verification performed.</li>
 </ul>
 
 <div class="foot">

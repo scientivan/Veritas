@@ -8,7 +8,7 @@ import type {Hex} from "viem";
  *
  * The public Unichain RPC caps eth_getLogs to a 10000-block range, so a reliable
  * full swap history cannot be reconstructed from on-chain logs alone. We instead
- * record each trade the collector makes through the app at confirmation time —
+ * record each trade the collector makes through the app at confirmation time,
  * the same pragmatic pattern used for launched IPs.
  */
 export interface TradeRecord {

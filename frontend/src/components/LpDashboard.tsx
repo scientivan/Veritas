@@ -211,7 +211,7 @@ export function LpDashboard({pool}: {pool: Pool}) {
       <h3 className="text-sm font-medium text-ink">Liquidity</h3>
       <p className="mt-1 text-xs leading-relaxed text-muted">
         Real Uniswap v4 actions on testnet. Mint the pool&apos;s test tokens, then add or remove
-        liquidity — each step is an on-chain transaction.
+        liquidity, each step is an on-chain transaction.
       </p>
 
       <dl className="mt-4 flex flex-col gap-2 text-sm">

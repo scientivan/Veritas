@@ -27,7 +27,7 @@ export default function PoolsPage() {
               <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">
                 Pools you can provide liquidity to right now. Each carries a live Dilution Risk
                 Score, and the LP fee already reflects the content&apos;s risk of being copied or
-                AI-replicated — protecting you automatically.
+                AI-replicated, protecting you automatically.
               </p>
             </div>
           </div>
@@ -38,7 +38,7 @@ export default function PoolsPage() {
             <p className="text-sm text-muted">
               Only pools <span className="font-semibold text-ink">open to liquidity providers</span>{" "}
               are listed here (live Uniswap v4 dynamic-fee pools). Bonding-curve launchpad pools
-              aren&apos;t shown — their liquidity is permanently locked at graduation, so there&apos;s
+              aren&apos;t shown, their liquidity is permanently locked at graduation, so there&apos;s
               no LP position to take.
             </p>
           </div>

@@ -14,11 +14,11 @@ export {calibrateAi};
  *  - ai-source-detector (confirmation): 5-class (stable_diffusion/midjourney/
  *    dalle/real/other_ai). When a real AI-generated image is uploaded, one of
  *    the AI classes typically dominates (> 0.50). For real photos the distribution
- *    is flat — no single AI class exceeds 0.50. This "dominance" threshold is
+ *    is flat: no single AI class exceeds 0.50. This "dominance" threshold is
  *    used to confirm or dampen SMOGY's signal.
  *
  *  - Deep-Fake-Detector excluded: empirically outputs 0.65-0.73 "Deepfake"
- *    for ALL images tested — no discriminative power, would only add noise.
+ *    for ALL images tested: no discriminative power, would only add noise.
  *
  * Combination logic (priority order):
  *  1. SMOGY says real (< 0.30)           → A = SMOGY (landscape/scene ≈ 0-3%)
@@ -103,7 +103,7 @@ export async function imageAiScore(image: RawImage): Promise<{a: number; source:
     raw = smogy;
     mode = "real";
   } else if (smogy > 0.75 && sourceConfirmsReal) {
-    // SMOGY fires on a real portrait — source confirms it's real, heavy dampen
+    // SMOGY fires on a real portrait: source confirms it's real, heavy dampen
     raw = smogy * 0.15;
     mode = "real-portrait";
   } else if (smogy > 0.75 && sourceConfirmsAi) {
@@ -111,7 +111,7 @@ export async function imageAiScore(image: RawImage): Promise<{a: number; source:
     raw = (smogy + maxAiClass) / 2;
     mode = "consensus-ai";
   } else if (smogy > 0.75) {
-    // SMOGY fires, source uncertain — moderate signal
+    // SMOGY fires, source uncertain: moderate signal
     raw = smogy * 0.40;
     mode = "smogy-uncertain";
   } else {

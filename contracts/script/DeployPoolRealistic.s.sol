@@ -26,7 +26,7 @@ import {VeritasHook} from "../src/VeritasHook.sol";
  *
  * If token0 < token1 in address order (usual case after sort), price = token1/token0 = 3000
  * means 1 token0 buys 3000 token1.  LP provides ~0.001 token1 per token0 deposited, so the
- * initial position is almost entirely token0-sided — realistic for an imageToken/ETH pair.
+ * initial position is almost entirely token0-sided, realistic for an imageToken/ETH pair.
  *
  * Required env:
  *   PRIVATE_KEY      - deployer (must own the attestation)
@@ -55,7 +55,7 @@ contract DeployPoolRealistic is Script {
 
         vm.startBroadcast(pk);
 
-        // 1. Deploy two TestERC20 tokens — token0 is the image token ($1), token1 is
+        // 1. Deploy two TestERC20 tokens: token0 is the image token ($1), token1 is
         //    the ETH-equivalent token ($3000).  Sort by address.
         TestERC20 a = new TestERC20(1e27);
         TestERC20 b = new TestERC20(1e27);
@@ -72,13 +72,13 @@ contract DeployPoolRealistic is Script {
         // 2. Register the pool against a low-DRS attestation.
         hook.registerPool(key, attestationId, BASE_FEE, MAX_FEE, GATE);
 
-        // 3. Initialize at the realistic price — tick 80069 ≈ price 3000 (imgToken/ETH).
+        // 3. Initialize at the realistic price: tick 80069 ≈ price 3000 (imgToken/ETH).
         uint160 sqrtPriceX96 = TickMath.getSqrtPriceAtTick(initTick);
         manager.initialize(key, sqrtPriceX96);
 
         // 4. Add a small amount of liquidity so the pool has reserves.
         //    At price 3000, a full-range 1e18 L position requires ~0.01826 imgToken
-        //    and ~54.77 ETH-equivalent tokens — mint enough of each.
+        //    and ~54.77 ETH-equivalent tokens, mint enough of each.
         PoolModifyLiquidityTest lp = new PoolModifyLiquidityTest(manager);
         PoolSwapTest swap = new PoolSwapTest(manager);
 

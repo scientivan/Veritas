@@ -226,7 +226,7 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
       )}
 
       <dl className="mt-4 flex flex-col gap-2 text-sm">
-        <Row label={`Price (${RAISE_TOKEN_SYMBOL}/token)`} value={price > 0 ? (price >= 1 ? price.toFixed(2) : price.toFixed(6)) : "—"} />
+        <Row label={`Price (${RAISE_TOKEN_SYMBOL}/token)`} value={price > 0 ? (price >= 1 ? price.toFixed(2) : price.toFixed(6)) : "-"} />
         {isConnected && (
           <>
             <Row label={`Your ${ipLabel}`} value={(+formatEther(balIp)).toFixed(2)} subtle />

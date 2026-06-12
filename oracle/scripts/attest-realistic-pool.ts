@@ -14,7 +14,7 @@ import {analyze, buildAttestation} from "../src/pipeline.js";
 const account = privateKeyToAccount(config.operatorKey);
 const wallet = createWalletClient({account, chain: unichainSepolia, transport: http(config.rpcUrl)});
 
-// Different image from picsum (id 600 = architecture/bridge) — not in the existing corpus.
+// Different image from picsum (id 600 = architecture/bridge), not in the existing corpus.
 const URL = "https://picsum.photos/id/600/320/320";
 const IPFS_CID = "ipfs://veritas/realistic-eth-pool";
 

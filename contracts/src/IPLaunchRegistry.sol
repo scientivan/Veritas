@@ -8,7 +8,7 @@ import {IVeritasRegistry} from "./interfaces/IVeritasRegistry.sol";
  * @notice DRS-gated IP token registry. An ERC-20 IP token can only be registered
  *         (and thus allowed to open a bonding-curve launchpad pool) if the creator
  *         first attests their content in VeritasRegistry and the resulting
- *         Dilution Risk Score is BELOW the gate threshold — proving the content
+ *         Dilution Risk Score is BELOW the gate threshold, proving the content
  *         is sufficiently original, not a copy or AI-replicated derivative.
  *
  * @dev Integration bridge between v2 (DRS attestation) and v1 (IP tokenization).
@@ -86,7 +86,7 @@ contract IPLaunchRegistry {
      *      - `token` and `royaltyReceiver` must be non-zero.
      *      - `msg.sender` must be the owner of the attestation in VeritasRegistry.
      *      - The attestation must not be under dispute.
-     *      - `getCurrentDRS(attestationId) < DRS_GATE` — content is original enough.
+     *      - `getCurrentDRS(attestationId) < DRS_GATE`: content is original enough.
      *      - `token` must not already be registered.
      */
     function registerIP(
