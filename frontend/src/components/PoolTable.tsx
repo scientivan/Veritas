@@ -7,7 +7,7 @@ import type {Hex} from "viem";
 import {ExplorerLink} from "./ExplorerLink";
 import {dynamicFeeBps, BASE_FEE_BPS, MAX_FEE_BPS} from "@/lib/drs";
 import {hasLivePool, getLivePoolList} from "@/lib/livePools";
-import {ASSUMED_ANNUAL_TURNOVER, poolImage} from "@/lib/poolMeta";
+import {ASSUMED_ANNUAL_TURNOVER, poolImage, resolveTokenImage} from "@/lib/poolMeta";
 import {useAttestations} from "@/hooks/useAttestations";
 import {useOnChainLaunchpads} from "@/hooks/useOnChainLaunchpads";
 import {useLivePoolTvl} from "@/hooks/useLivePoolTvl";
@@ -30,14 +30,22 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
   const tvlByAttestation = useLivePoolTvl(getLivePoolList());
   const {entries: launchpadEntries, isLoading: launchpadLoading} = useOnChainLaunchpads();
 
-  // For the lpOnly view: graduated on-chain launchpads that are not already in allPools.
+  // Seeded / known pools that LPs can provide liquidity to right now: a live
+  // Uniswap v4 dynamic-fee pool already exists and the content isn't gated.
+  const seededLpPools = useMemo<Pool[]>(
+    () => (lpOnly ? allPools.filter((p) => hasLivePool(p.id) && !p.gated) : []),
+    [lpOnly, allPools]
+  );
+
+  // Freshly graduated on-chain launchpads (their curve hit the hard cap and the
+  // liquidity has locked into a v4 pool), minus any already shown as a seeded pool.
   const graduatedPools = useMemo<Pool[]>(() => {
     if (!lpOnly) return [];
-    const knownIds = new Set(allPools.map((p) => p.id.toLowerCase()));
+    const seededIds = new Set(seededLpPools.map((p) => p.id.toLowerCase()));
     return launchpadEntries
       .filter(
         (e) =>
-          e.phase === LaunchpadPhase.GRADUATED && !knownIds.has(e.attestationId.toLowerCase())
+          e.phase === LaunchpadPhase.GRADUATED && !seededIds.has(e.attestationId.toLowerCase())
       )
       .map((e) => {
         const hue = parseInt(e.attestationId.slice(2, 6), 16) % 360;
@@ -61,16 +69,25 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
           ipfsCid: e.tokenURI,
           pHash: "0x",
           attestedAt: 0,
+          imageUrl: resolveTokenImage({attestationId: e.attestationId, tokenURI: e.tokenURI}),
+          tokenAddress: e.tokenAddress,
+          tokenSymbol: e.tokenSymbol,
         } satisfies Pool;
       });
-  }, [lpOnly, launchpadEntries, allPools]);
+  }, [lpOnly, launchpadEntries, seededLpPools]);
 
-  const pools = useMemo(
-    () => (lpOnly ? graduatedPools : allPools),
-    [allPools, lpOnly, graduatedPools]
-  );
+  const pools = useMemo(() => {
+    if (!lpOnly) return allPools;
+    // Dedup by attestation id: rows are keyed by p.id, so any duplicate id would
+    // collide React keys and misroute the row's Link click to the wrong pool.
+    const byId = new Map<string, Pool>();
+    for (const p of [...seededLpPools, ...graduatedPools]) {
+      if (!byId.has(p.id.toLowerCase())) byId.set(p.id.toLowerCase(), p);
+    }
+    return [...byId.values()];
+  }, [allPools, lpOnly, seededLpPools, graduatedPools]);
 
-  const isLoading = lpOnly ? launchpadLoading : attLoading;
+  const isLoading = lpOnly ? attLoading || launchpadLoading : attLoading;
 
   // Merge real (assumed-price) TVL into the pooled attestations, plus a labelled
   // APY estimate derived from the live DRS-calibrated fee (testnet has no volume).
@@ -113,7 +130,7 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
       {isLoading && (
         <div className="mb-4 flex items-center gap-2 text-xs text-muted">
           <Loader2 className="size-3.5 animate-spin" aria-hidden />
-          {lpOnly ? "Fetching graduated pools…" : "Fetching on-chain attestations…"}
+          {lpOnly ? "Fetching available pools…" : "Fetching on-chain attestations…"}
         </div>
       )}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -151,7 +168,7 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
       {!isLoading && rows.length === 0 && (
         <div className="mt-8 rounded-xl border border-dashed border-border p-10 text-center text-sm text-muted">
           {lpOnly
-            ? "No graduated pools yet. When a bonding curve reaches its hard cap, the pool graduates and appears here."
+            ? "No pools open to liquidity providers yet. A pool appears here once a bonding curve graduates at its hard cap and its liquidity locks into a Uniswap v4 pool."
             : "No pools match your search."}
         </div>
       )}
@@ -170,11 +187,11 @@ export function PoolTable({lpOnly = false}: {lpOnly?: boolean}) {
             {rows.map((p) => (
               <Link
                 key={p.id}
-                href={`/pool/${p.id}`}
+                href={p.tokenAddress ? `/pool/${p.id}?token=${p.tokenAddress}` : `/pool/${p.id}`}
                 className="grid grid-cols-2 gap-x-4 gap-y-3 px-4 py-4 transition-colors hover:bg-surface/60 md:grid-cols-[2.4fr_1.2fr_1fr_1fr_0.8fr] md:items-center md:py-3.5"
               >
                 <div className="col-span-2 flex items-center gap-3 md:col-span-1">
-                  <Thumbnail src={poolImage(p.id)} swatch={p.swatch} alt={p.title} />
+                  <Thumbnail src={p.imageUrl ?? poolImage(p.id)} swatch={p.swatch} alt={p.title} />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="truncate font-medium text-ink">{p.title}</span>

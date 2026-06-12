@@ -111,8 +111,9 @@ export function CurveTradePanel({pool, record}: {pool: Pool; record: LaunchpadRe
   const maxRaiseForLimit = price > 0 ? (remainingAllowanceNum * price) / 0.9985 : 0;
 
   async function wait(hash: Hex) {
-    const r = await publicClient?.waitForTransactionReceipt({hash});
-    if (r && r.status !== "success") throw new Error("Transaction reverted on-chain");
+    if (!publicClient) throw new Error("No RPC client available. Reload and try again.");
+    const r = await publicClient.waitForTransactionReceipt({hash});
+    if (r.status !== "success") throw new Error("Transaction reverted on-chain");
   }
   async function refetch() {
     await Promise.all([refetchLp(), refetchUser(), refetchBought()]);

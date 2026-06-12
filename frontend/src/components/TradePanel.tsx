@@ -129,9 +129,9 @@ export function TradePanel({
   const inputValid = amountWei > 0n && amountWei <= inputBal;
 
   async function wait(hash: Hex) {
-    const r = await publicClient?.waitForTransactionReceipt({ hash });
-    if (r && r.status !== "success")
-      throw new Error("Transaction reverted on-chain");
+    if (!publicClient) throw new Error("No RPC client available. Reload and try again.");
+    const r = await publicClient.waitForTransactionReceipt({hash});
+    if (r.status !== "success") throw new Error("Transaction reverted on-chain");
   }
 
   async function refetch() {

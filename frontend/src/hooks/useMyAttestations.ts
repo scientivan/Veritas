@@ -62,6 +62,10 @@ export interface MyAttestation {
   launchpadPhase?: LaunchpadPhase;
   fundsRaised?: bigint;
   hardCap?: bigint;
+  tokensSold?: bigint;
+  curveAllocation?: bigint;
+  curveA?: bigint;
+  curveB?: bigint;
 }
 
 export function useMyAttestations() {
@@ -110,19 +114,33 @@ export function useMyAttestations() {
         ]);
         if (cancelled) return;
 
-        const ids = attestedLogs.map((l) => l.args.attestationId as Hex);
+        // Dedup attestation IDs: a repeated Attested event would otherwise render
+        // two cards with the same React key (keyed by att.id), which misroutes
+        // clicks to the wrong attestation's detail page. Keep first occurrence.
+        const seenIds = new Set<string>();
+        const ids: Hex[] = [];
+        for (const l of attestedLogs) {
+          const id = l.args.attestationId as Hex;
+          if (seenIds.has(id.toLowerCase())) continue;
+          seenIds.add(id.toLowerCase());
+          ids.push(id);
+        }
 
-        const tokensList: RegisteredToken[] = registeredLogs.map((l) => {
+        // Dedup registrations by token (one token == one pool), keeping the most
+        // recent registration so its attestation association is the current one.
+        const tokenSeen = new Map<string, RegisteredToken>();
+        for (const l of registeredLogs) {
           const token = l.args.token as Address;
           const {key, ipIsToken0} = buildLaunchpadKey(token);
-          return {
+          tokenSeen.set(token.toLowerCase(), {
             attestationId: l.args.attestationId as Hex,
             token,
             tokenURI: (l.args.tokenURI as string) ?? "",
             poolId: computePoolId(key) as Hex,
             ipIsToken0,
-          };
-        });
+          });
+        }
+        const tokensList: RegisteredToken[] = [...tokenSeen.values()];
 
         setAttestedIds(ids);
         setRegisteredTokens(tokensList);
@@ -198,6 +216,10 @@ export function useMyAttestations() {
           launchpadPhase: curve ? (Number(curve.phase) as LaunchpadPhase) : undefined,
           fundsRaised: curve?.fundsRaised,
           hardCap: curve?.hardCap,
+          tokensSold: curve?.tokensSold,
+          curveAllocation: curve?.curveAllocation,
+          curveA: curve?.curveA,
+          curveB: curve?.curveB,
         }];
       }),
     [attestedIds, records, tokenMap, tokenMeta, launchpadData]

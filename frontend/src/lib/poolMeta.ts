@@ -42,6 +42,39 @@ export function poolImage(attestationId: string): string | null {
   return IMAGES[attestationId.toLowerCase()] ?? null;
 }
 
+/** Convert a tokenURI / ipfsCid into a usable image URL, or null if it isn't one.
+ *  Handles direct http(s) URLs and real IPFS CIDs (bafy/bafk/Qm), via a gateway.
+ *  Placeholder URIs like "ipfs://veritas/SYMBOL" return null (no real image). */
+function uriToImageUrl(uri?: string | null): string | null {
+  if (!uri) return null;
+  const u = uri.trim();
+  if (u.startsWith("http://") || u.startsWith("https://")) return u;
+  if (u.startsWith("ipfs://")) {
+    const cid = u.slice("ipfs://".length);
+    if (/^(bafy|bafk|Qm)/i.test(cid)) return `https://gateway.pinata.cloud/ipfs/${cid}`;
+  }
+  return null;
+}
+
+/**
+ * Best available image for a pool/token, checked in priority order:
+ *   1. a curated seeded image (poolImage), keyed by attestation id
+ *   2. the launched token's tokenURI (a real http/ipfs image)
+ *   3. the attestation's ipfsCid (a real http/ipfs image)
+ * Returns null when only a color swatch is available.
+ */
+export function resolveTokenImage(opts: {
+  attestationId?: string;
+  tokenURI?: string | null;
+  ipfsCid?: string | null;
+}): string | null {
+  if (opts.attestationId) {
+    const seeded = poolImage(opts.attestationId);
+    if (seeded) return seeded;
+  }
+  return uriToImageUrl(opts.tokenURI) ?? uriToImageUrl(opts.ipfsCid);
+}
+
 function prettifyCid(ipfsCid: string): string | null {
   // "ipfs://veritas/mountain-ridge" -> "Mountain Ridge"; skip bare CIDs.
   const tail = ipfsCid.replace(/^ipfs:\/\//, "").split("/").pop() ?? "";

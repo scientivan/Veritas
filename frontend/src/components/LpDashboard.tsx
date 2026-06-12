@@ -123,8 +123,9 @@ export function LpDashboard({pool}: {pool: Pool}) {
   const inputValid = inputWei > 0n;
 
   async function wait(hash: `0x${string}`) {
-    const r = await publicClient?.waitForTransactionReceipt({hash});
-    if (r && r.status !== "success") throw new Error("Transaction reverted on-chain");
+    if (!publicClient) throw new Error("No RPC client available. Reload and try again.");
+    const r = await publicClient.waitForTransactionReceipt({hash});
+    if (r.status !== "success") throw new Error("Transaction reverted on-chain");
   }
 
   async function mintTokens() {

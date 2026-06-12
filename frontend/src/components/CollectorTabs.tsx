@@ -1,14 +1,13 @@
 import Link from "next/link";
-import {Store, Wallet, History} from "lucide-react";
+import {Store, Wallet} from "lucide-react";
 import {cn} from "@/lib/utils";
 
 const TABS = [
   {key: "market", href: "/market", label: "Marketplace", icon: Store},
-  {key: "portfolio", href: "/market/portfolio", label: "Portfolio", icon: Wallet},
-  {key: "history", href: "/market/history", label: "History", icon: History},
+  {key: "portfolio", href: "/portfolio", label: "Portfolio", icon: Wallet},
 ] as const;
 
-export function CollectorTabs({current}: {current: "market" | "portfolio" | "history"}) {
+export function CollectorTabs({current}: {current: "market" | "portfolio"}) {
   return (
     <div className="mt-6 flex w-fit items-center gap-1 rounded-xl border border-border bg-surface p-1">
       {TABS.map(({key, href, label, icon: Icon}) => (

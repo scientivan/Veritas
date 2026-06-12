@@ -2,7 +2,7 @@ import {createPublicClient, formatUnits, http} from "viem";
 import {ASSUMED_TOKEN_PRICE_USD} from "./poolMeta";
 import type {Address, Hex} from "viem";
 import {unichainSepolia} from "./chains";
-import {POOL_MANAGER_ADDRESS, V1_HOOK_ADDRESS} from "./contracts";
+import {POOL_MANAGER_ADDRESS} from "./contracts";
 
 /**
  * Real Uniswap v4 pools opened through the Veritas hook (liquidity added + swap
@@ -32,69 +32,8 @@ export interface LivePool {
   token0Mintable?: boolean;
 }
 
-const POOLS: LivePool[] = [
-  {
-    attestationId: "0x40e6a7dc19b5b6314b6084ff13db1475e0ac3c9859fb884b969e2ab861a1a4b9",
-    poolId: "0xac25408919c0932a0f5e1250f93a4ac9ab7fb88b8f8edf466b9d3dd8a14259af",
-    token0: "0xeD55FB324761b65F62C524caC8dE39154C8797A5",
-    token1: "0xF0337F1aa72844F9a2628338DFf3bBcF77af0bf3",
-    baseFeeBps: 3000,
-    maxFeeBps: 10000,
-    drsGateThreshold: 8500,
-    token0PriceUsd: 1,
-    token1PriceUsd: 3000,
-  },
-  {
-    attestationId: "0x1105152961f82de0774f53cf7164180584a12d4e7449a3f9bf636d285dac881c",
-    poolId: "0xf19c91f52ef5aae79127bd943fac3031c160d7d9ed5244b5e00a721ae87f2d2b",
-    token0: "0x782BEc7Dc157a7a5b569ce07cF949DE803ac5508",
-    token1: "0xE388f7DB82a0ca0923e970cea5cD2867a4452ef7",
-    baseFeeBps: 3000,
-    maxFeeBps: 10000,
-    drsGateThreshold: 8500,
-    token0PriceUsd: 1,
-    token1PriceUsd: 3000,
-  },
-  {
-    attestationId: "0x2cd1bffbf7ffca4bf7827d1c9d6722bd02080dd3e852e37bfc63beeb6ca5900e",
-    poolId: "0x3dc931d45e7b1ead40e0684a12453fb6a40c7e9b1752209858700d4ab965a5eb",
-    token0: "0x22023CDF642e658b19A5352269600F7b4e24ACb8",
-    token1: "0x96a2d5f51FAe7ADF0740A9ec18987bD33f4D7CEa",
-    baseFeeBps: 3000,
-    maxFeeBps: 10000,
-    drsGateThreshold: 8500,
-    token0PriceUsd: 1,
-    token1PriceUsd: 3000,
-  },
-  {
-    attestationId: "0x224e1cadba8dfbee555ead7d55e5a5b76e0e638b07fbda93a4d8c98979d5fecf",
-    poolId: "0x0634ba9699e1760f4072e8e22a54061d3fb751d786c5bcb14f4f8382c27f67f7",
-    token0: "0x202eA4453060d91A3b14BF5591751fB0eb40ca72",
-    token1: "0x6131802ED6D45982fB5AA270e007E349635BC338",
-    baseFeeBps: 3000,
-    maxFeeBps: 10000,
-    drsGateThreshold: 8500,
-    token0PriceUsd: 1,
-    token1PriceUsd: 3000,
-  },
-  // Graduated from the live demo launchpad (seeded to 1000 USDC hardcap).
-  // Pool key: fee=3000 (static, set at launchpad init), hooks=V1_HOOK_ADDRESS.
-  // token0 is an IPToken with fixed supply — no public mint function.
-  {
-    attestationId: "0x1f6ba29ac32a2ea5cc6ef5fd21ea4de3bac982651faa18961f6cdee366da4ab0",
-    poolId: "0xeda24af8dffffdbdec19f7ac7a00cd965624928d6430f3f62d4a50d78702c130",
-    token0: "0xa4DD007F6E1C78af5EeCb3c9C8cBab381961402A",
-    token1: "0xD977AD033490EF42Db9E3B8Fc294425369b5A15a",
-    baseFeeBps: 3000,
-    maxFeeBps: 10000,
-    drsGateThreshold: 8500,
-    token0PriceUsd: 1,
-    token1PriceUsd: 1,
-    poolFee: 3000,
-    hooksAddress: V1_HOOK_ADDRESS,
-    token0Mintable: false,
-  },
-];
+// Seed data cleared: all pools now derive from on-chain IPRegistered events.
+const POOLS: LivePool[] = [];
 
 const BY_ATTESTATION = new Map(POOLS.map((p) => [p.attestationId.toLowerCase(), p]));
 

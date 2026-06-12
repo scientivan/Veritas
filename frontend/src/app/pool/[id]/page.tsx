@@ -28,6 +28,14 @@ function isAttestationId(id: string): id is `0x${string}` {
   return id.startsWith("0x") && id.length === 66;
 }
 
+/** Optional `?token=0x…` that disambiguates which token of a shared attestation was clicked. */
+function tokenParam(
+  sp: Record<string, string | string[] | undefined>,
+): `0x${string}` | undefined {
+  const v = Array.isArray(sp.token) ? sp.token[0] : sp.token;
+  return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? (v as `0x${string}`) : undefined;
+}
+
 /** A public gateway URL for a real IPFS CID, or undefined for placeholder CIDs. */
 function ipfsGateway(ipfsCid: string): string | undefined {
   const cid = ipfsCid.replace(/^ipfs:\/\//, "");
@@ -38,11 +46,14 @@ function ipfsGateway(ipfsCid: string): string | undefined {
 
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const pool = isAttestationId(id) ? await getOnChainPool(id) : undefined;
+  const token = tokenParam(await searchParams);
+  const pool = isAttestationId(id) ? await getOnChainPool(id, token) : undefined;
   return {
     title: pool
       ? `${pool.title} · Veritas`
@@ -56,13 +67,16 @@ function fmtDate(ts: number) {
 
 export default async function PoolDetail({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const { id } = await params;
   // Only bytes32 hex attestation IDs are valid; everything else is not found.
   if (!isAttestationId(id)) notFound();
-  const pool = await getOnChainPool(id);
+  const token = tokenParam(await searchParams);
+  const pool = await getOnChainPool(id, token);
   if (!pool) notFound();
 
   const livePool = getLivePool(id);
@@ -70,6 +84,7 @@ export default async function PoolDetail({
   const tvl: { tvlTokens: number; tvlUsd: number } | null = livePool
     ? await getLivePoolTvl(livePool)
     : null;
+  const img = pool.imageUrl ?? poolImage(pool.id);
 
   return (
     <>
@@ -91,19 +106,26 @@ export default async function PoolDetail({
               style={{ background: pool.swatch }}
               aria-hidden
             >
-              {poolImage(pool.id) && (
+              {img && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
-                  src={poolImage(pool.id)!}
+                  src={img}
                   alt={pool.title}
                   className="size-full object-cover"
                 />
               )}
             </span>
             <div className="flex-1">
-              <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
-                {pool.title}
-              </h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="font-display text-3xl font-semibold tracking-tight text-ink">
+                  {pool.title}
+                </h1>
+                {pool.tokenSymbol && (
+                  <span className="rounded-md border border-border bg-surface/60 px-2 py-0.5 font-mono text-xs text-muted">
+                    {pool.tokenSymbol}
+                  </span>
+                )}
+              </div>
               <p className="mt-1 text-sm text-muted">
                 {pool.medium} · by {pool.creator}{" "}
                 <ExplorerLink

@@ -1,12 +1,32 @@
 "use client";
 
-import {useMemo} from "react";
+import {useMemo, useState} from "react";
 import Link from "next/link";
 import {ArrowRight, Loader2, Store} from "lucide-react";
 import {useOnChainLaunchpads} from "@/hooks/useOnChainLaunchpads";
 import {LaunchpadPhase} from "@/lib/launchpad";
 import {curvePrice} from "@/lib/curve";
+import {resolveTokenImage} from "@/lib/poolMeta";
 import {RiskPill} from "./RiskPill";
+
+/** Card artwork: the real token image when available, falling back to a swatch
+ *  (also used when the image fails to load). */
+function CardArt({src, swatch, alt}: {src: string | null; swatch: string; alt: string}) {
+  const [err, setErr] = useState(false);
+  if (!src || err) {
+    return <div className="size-full" style={{background: swatch}} aria-hidden />;
+  }
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={src}
+      alt={alt}
+      loading="lazy"
+      onError={() => setErr(true)}
+      className="size-full object-cover"
+    />
+  );
+}
 
 function fmtPrice(n: number): string {
   if (n === 0) return "0";
@@ -60,19 +80,23 @@ export function CollectorMarketplace() {
             : null;
         const priceLabel = price != null ? fmtPrice(price) : "—";
         const badge = isGraduated ? "pool" : "launchpad";
-        const href = isGraduated ? `/pool/${e.attestationId}` : `/trade/${e.attestationId}`;
+        // Pass the token so the detail page resolves THIS token (an attestation
+        // can back several distinct tokens).
+        const base = isGraduated ? `/pool/${e.attestationId}` : `/trade/${e.attestationId}`;
+        const href = `${base}?token=${e.tokenAddress}`;
         const title = e.tokenName || e.attestationId.slice(0, 8) + "…";
         const creator =
           e.royaltyReceiver.slice(0, 6) + "…" + e.royaltyReceiver.slice(-4);
+        const img = resolveTokenImage({attestationId: e.attestationId, tokenURI: e.tokenURI});
 
         return (
           <Link
-            key={e.attestationId}
+            key={e.tokenAddress}
             href={href}
             className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-colors hover:border-border-strong"
           >
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-bg">
-              <div className="size-full" style={{background: hueSwatch(e.attestationId)}} />
+              <CardArt src={img} swatch={hueSwatch(e.attestationId)} alt={title} />
               <div className="absolute left-3 top-3">
                 <RiskPill drs={e.drs} gated={false} size="sm" />
               </div>

@@ -12,8 +12,7 @@ export const LP_LINKS = [
 
 export const COLLECTOR_LINKS = [
   {href: "/market", label: "Marketplace"},
-  {href: "/market/portfolio", label: "Portfolio"},
-  {href: "/market/history", label: "History"},
+  {href: "/portfolio", label: "Portfolio"},
 ];
 
 export const LINKS_BY_ROLE = {

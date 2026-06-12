@@ -17,24 +17,40 @@ function isAttestationId(id: string): id is `0x${string}` {
   return id.startsWith("0x") && id.length === 66;
 }
 
+/** Optional `?token=0x…` that disambiguates which token of a shared attestation was clicked. */
+function tokenParam(sp: Record<string, string | string[] | undefined>): `0x${string}` | undefined {
+  const v = Array.isArray(sp.token) ? sp.token[0] : sp.token;
+  return v && /^0x[0-9a-fA-F]{40}$/.test(v) ? (v as `0x${string}`) : undefined;
+}
+
 export async function generateMetadata({
   params,
+  searchParams,
 }: {
   params: Promise<{id: string}>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }): Promise<Metadata> {
   const {id} = await params;
-  const pool = isAttestationId(id) ? await getOnChainPool(id) : undefined;
+  const token = tokenParam(await searchParams);
+  const pool = isAttestationId(id) ? await getOnChainPool(id, token) : undefined;
   return {title: pool ? `Trade ${pool.title} · Veritas` : "Trade · Veritas"};
 }
 
-export default async function TradePage({params}: {params: Promise<{id: string}>}) {
+export default async function TradePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{id: string}>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const {id} = await params;
   if (!isAttestationId(id)) notFound();
-  const pool = await getOnChainPool(id);
+  const token = tokenParam(await searchParams);
+  const pool = await getOnChainPool(id, token);
   if (!pool) notFound();
 
   const livePool = getLivePool(id);
-  const img = poolImage(id);
+  const img = pool.imageUrl ?? poolImage(id);
 
   return (
     <>
@@ -70,7 +86,14 @@ export default async function TradePage({params}: {params: Promise<{id: string}>
                 </div>
                 <div className="flex items-start justify-between gap-4 p-5">
                   <div>
-                    <h1 className="font-display text-2xl font-semibold text-ink">{pool.title}</h1>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h1 className="font-display text-2xl font-semibold text-ink">{pool.title}</h1>
+                      {pool.tokenSymbol && (
+                        <span className="rounded-md border border-border bg-surface/60 px-1.5 py-0.5 font-mono text-xs text-muted">
+                          {pool.tokenSymbol}
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-0.5 text-sm text-muted">
                       by{" "}
                       <Link

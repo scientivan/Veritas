@@ -43,6 +43,13 @@ export interface Pool {
   pHash: `0x${string}`;
   attestedAt: number;
 
+  /** Resolved content/token image URL, or null/undefined when only a swatch is available. */
+  imageUrl?: string | null;
+  /** ERC-20 IP token address, when this attestation has a launched token. */
+  tokenAddress?: `0x${string}`;
+  /** ERC-20 token symbol, when this attestation has a launched token. */
+  tokenSymbol?: string;
+
   /** Present when this pool has a linked v1 bonding-curve launchpad. */
   launchpad?: LaunchpadInfo;
 }

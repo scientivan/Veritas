@@ -18,21 +18,26 @@ const PHASE_COLOR: Record<LaunchpadInfo["phase"], string> = {
 
 interface Props {
   launchpad: LaunchpadInfo;
+  /** Current curve price in raise-token units per IP token (LAUNCHPAD phase). */
+  currentPrice?: number;
   className?: string;
 }
 
-export function BondingCurveCard({launchpad, className}: Props) {
+export function BondingCurveCard({launchpad, currentPrice, className}: Props) {
   const {phase, fundsRaised, hardCap, tokensSold, curveAllocation} = launchpad;
 
   const raisePct = hardCap > 0n ? Number((fundsRaised * 10000n) / hardCap) / 100 : 0;
   const tokenPct =
     curveAllocation > 0n ? Number((tokensSold * 10000n) / curveAllocation) / 100 : 0;
 
-  // Format USDC (6 decimals)
+  // The Mock USDC raise token is 18 decimals (publicly mintable testnet token).
   const fmtUsdc = (v: bigint) => {
-    const n = Number(v) / 1e6;
+    const n = Number(v) / 1e18;
     return n >= 1000 ? `$${(n / 1000).toFixed(1)}k` : `$${n.toFixed(0)}`;
   };
+
+  const fmtPrice = (n: number) =>
+    n === 0 ? "0" : n >= 1 ? n.toFixed(2) : n.toFixed(6);
 
   return (
     <div className={cn("flex flex-col gap-4 rounded-2xl border border-border bg-surface p-5", className)}>
@@ -80,6 +85,15 @@ export function BondingCurveCard({launchpad, className}: Props) {
               />
             </div>
           </div>
+
+          {currentPrice != null && (
+            <div className="flex items-center justify-between border-t border-border pt-3 text-xs">
+              <span className="text-muted">Price / token</span>
+              <span className="font-mono font-semibold tabular-nums text-ink">
+                {fmtPrice(currentPrice)} USDC
+              </span>
+            </div>
+          )}
         </>
       )}
 

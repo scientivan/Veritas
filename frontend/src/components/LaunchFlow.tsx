@@ -1,7 +1,7 @@
 "use client";
 
 import {useState, useCallback, useEffect, useRef} from "react";
-import {useAccount} from "wagmi";
+import {useAccount, usePublicClient} from "wagmi";
 import {ConnectButton} from "@rainbow-me/rainbowkit";
 import {useRouter} from "next/navigation";
 import {toast} from "sonner";
@@ -27,7 +27,8 @@ import {useIPLaunch} from "@/hooks/useIPLaunch";
 import {useLaunchedIPs} from "@/hooks/useLaunchedIPs";
 import {useLaunchpadPools} from "@/hooks/useLaunchpadPools";
 import {useContractMeta} from "@/hooks/useContractMeta";
-import {RAISE_TOKEN_ADDRESS, RAISE_TOKEN_SYMBOL} from "@/lib/contracts";
+import {RAISE_TOKEN_ADDRESS, RAISE_TOKEN_SYMBOL, REGISTRY_ADDRESS} from "@/lib/contracts";
+import {REGISTRY_ABI} from "@/lib/abis";
 import {defaultAllocations, parseHardCap} from "@/lib/launchpad";
 import {DRS_GATE, dynamicFeeBps, tierForDrs} from "@/lib/drs";
 import {
@@ -121,6 +122,7 @@ function hueSwatch(seed: string): string {
 
 export function LaunchFlow() {
   const {address, isConnected} = useAccount();
+  const publicClient = usePublicClient();
   const router = useRouter();
   const {state, attestOnChain, mintToken, registerIP, openLaunchpad, reset} = useIPLaunch();
   const {addLaunchedIP} = useLaunchedIPs();
@@ -152,6 +154,10 @@ export function LaunchFlow() {
   const [attestation, setAttestation] = useState<OracleAttestation | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
 
+  // Resume mode: when arriving via /launch?attestation=<id> from Creator Studio,
+  // skip Verify and jump straight to minting against an already-attested record.
+  const [resumeId, setResumeId] = useState<Hex | null>(null);
+
   const risk = analyzed?.risk ?? null;
   const drs = risk?.drs ?? null;
   const isGated = risk?.gated ?? (drs !== null && drs > DRS_GATE);
@@ -177,10 +183,45 @@ export function LaunchFlow() {
       setTokenSymbol("");
       setIpfsUri("");
       setFlowError(null);
+      setResumeId(null);
       setCurrentStep(1);
       reset();
     }
   }, [address, reset]);
+
+  // Resume from a deep link: /launch?attestation=<id>. If the record is already
+  // attested on-chain, prefill its IPFS URI and jump to the mint step (the attest
+  // tx is skipped on-chain since the attestation already exists).
+  const resumeHandledRef = useRef(false);
+  useEffect(() => {
+    if (resumeHandledRef.current || typeof window === "undefined" || !publicClient) return;
+    const param = new URLSearchParams(window.location.search).get("attestation");
+    if (!param || !/^0x[0-9a-fA-F]{64}$/.test(param)) return;
+    resumeHandledRef.current = true;
+    const attId = param as Hex;
+    void (async () => {
+      try {
+        const attested = await publicClient.readContract({
+          address: REGISTRY_ADDRESS,
+          abi: REGISTRY_ABI,
+          functionName: "isAttested",
+          args: [attId],
+        });
+        if (!attested) return;
+        const rec = (await publicClient.readContract({
+          address: REGISTRY_ADDRESS,
+          abi: REGISTRY_ABI,
+          functionName: "getRecord",
+          args: [attId],
+        })) as {ipfsCid?: string};
+        setResumeId(attId);
+        if (rec?.ipfsCid) setIpfsUri(rec.ipfsCid);
+        setCurrentStep(2);
+      } catch {
+        // Bad link / read failure: silently stay on Step 1.
+      }
+    })();
+  }, [publicClient]);
 
   // Cosmetic scan animation while the (real) oracle analyze call is in flight.
   useEffect(() => {
@@ -302,44 +343,61 @@ export function LaunchFlow() {
 
   // Step 2 action: attest on-chain (deferred), then mint the IP token.
   const handleAttestAndMint = useCallback(async () => {
-    if (!subject || !analyzed || !address || !tokenName || !tokenSymbol) return;
+    if (!address || !tokenName || !tokenSymbol) return;
+    // Fresh flow needs the oracle preview; resume mode reuses an existing attestation.
+    if (!resumeId && (!subject || !analyzed)) return;
     setFlowError(null);
 
-    // 1. Use the prefetched signed attestation, or fetch it now as a fallback.
-    let att = attestation;
-    if (!att) {
-      try {
-        att = await fetchAttestation();
-      } catch (e) {
-        setFlowError(
-          e instanceof Error ? e.message : `Oracle unreachable at ${ORACLE_URL}. Start it: cd oracle && npm run dev`
-        );
-        return;
-      }
-    }
-    if (!att) return;
+    let attId: Hex | null;
 
-    // 2. Attestation tx fires right before mint (reused if already on-chain).
-    const attId = await attestOnChain({
-      pHash: att.pHash,
-      blockHash: att.blockHash,
-      ipfsCid: att.ipfsCid,
-      aiSigs: toOnChainSigs(att.aiSigs),
-      dSigs: toOnChainSigs(att.dSigs),
-      attestationId: att.attestationId,
-      attestFee: attestFee ?? 0n,
-    });
+    if (resumeId) {
+      // Already attested on-chain: attestOnChain detects this and skips the write,
+      // so the pHash/blockHash/sigs are unused — pass zero placeholders.
+      const zero = `0x${"00".repeat(32)}` as Hex;
+      attId = await attestOnChain({
+        pHash: zero,
+        blockHash: zero,
+        ipfsCid: ipfsUri || `ipfs://veritas/${tokenSymbol}`,
+        aiSigs: [],
+        dSigs: [],
+        attestationId: resumeId,
+        attestFee: 0n,
+      });
+    } else {
+      // 1. Use the prefetched signed attestation, or fetch it now as a fallback.
+      let att = attestation;
+      if (!att) {
+        try {
+          att = await fetchAttestation();
+        } catch (e) {
+          setFlowError(
+            e instanceof Error ? e.message : `Oracle unreachable at ${ORACLE_URL}. Start it: cd oracle && npm run dev`
+          );
+          return;
+        }
+      }
+      if (!att) return;
+
+      // 2. Attestation tx fires right before mint (reused if already on-chain).
+      attId = await attestOnChain({
+        pHash: att.pHash,
+        blockHash: att.blockHash,
+        ipfsCid: att.ipfsCid,
+        aiSigs: toOnChainSigs(att.aiSigs),
+        dSigs: toOnChainSigs(att.dSigs),
+        attestationId: att.attestationId,
+        attestFee: attestFee ?? 0n,
+      });
+      if (attId && !ipfsUri) setIpfsUri(att.ipfsCid);
+    }
     if (!attId) return; // hook sets state.error
 
     // 3. Mint the IP token. IPTokenFactory mints `initialSupply * 10**18` itself,
     //    so pass the RAW human count (not a parseUnits value) to avoid double-scaling.
     const supply = BigInt(Math.max(0, Math.floor(Number(tokenSupply) || 0)));
     const token = await mintToken(tokenName, tokenSymbol, supply);
-    if (token) {
-      if (!ipfsUri) setIpfsUri(att.ipfsCid);
-      setCurrentStep(3);
-    }
-  }, [subject, analyzed, address, tokenName, tokenSymbol, tokenSupply, ipfsUri, attestFee, attestation, fetchAttestation, attestOnChain, mintToken]);
+    if (token) setCurrentStep(3);
+  }, [resumeId, subject, analyzed, address, tokenName, tokenSymbol, tokenSupply, ipfsUri, attestFee, attestation, fetchAttestation, attestOnChain, mintToken]);
 
   const handleRegister = useCallback(async () => {
     if (!state.ipTokenAddress || !state.attestationId || !address || !ipfsUri) return;
@@ -459,7 +517,8 @@ export function LaunchFlow() {
           mintTxHash={state.mintTxHash}
           attestFeeEth={attestFeeEth}
           error={flowError ?? (state.step === "error" ? state.error : null)}
-          onBack={() => setCurrentStep(1)}
+          resumed={!!resumeId}
+          onBack={() => (resumeId ? router.push("/creator") : setCurrentStep(1))}
         />
       )}
 
@@ -484,6 +543,7 @@ export function LaunchFlow() {
             setTokenSymbol("");
             setIpfsUri("");
             setFlowError(null);
+            setResumeId(null);
             setCurrentStep(1);
             reset();
           }}
@@ -515,6 +575,7 @@ export function LaunchFlow() {
             setIpfsUri("");
             setHardCap("1000");
             setFlowError(null);
+            setResumeId(null);
             setCurrentStep(1);
             reset();
           }}
@@ -772,6 +833,7 @@ function StepMint({
   mintTxHash,
   attestFeeEth,
   error,
+  resumed = false,
   onBack,
 }: {
   tokenName: string;
@@ -788,6 +850,7 @@ function StepMint({
   mintTxHash: Hex | null;
   attestFeeEth: string | undefined;
   error: string | null;
+  resumed?: boolean;
   onBack: () => void;
 }) {
   return (
@@ -799,6 +862,14 @@ function StepMint({
           attestation is signed onto Unichain, then your ERC-20 IP token is deployed.
         </p>
       </div>
+
+      {resumed && (
+        <p className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs text-primary-ink">
+          <CheckCircle2 className="size-3.5 shrink-0" />
+          Resuming a verified attestation — verification is already on-chain, so we skip straight to
+          minting and opening the pool.
+        </p>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">

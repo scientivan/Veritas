@@ -4,8 +4,8 @@ import {Footer} from "@/components/Footer";
 import {PortfolioDashboard} from "@/components/PortfolioDashboard";
 
 export const metadata: Metadata = {
-  title: "LP Portfolio · Veritas",
-  description: "Compare pool risk, monitor DRS gate proximity, and simulate IL protection for your LP positions.",
+  title: "Portfolio · Veritas",
+  description: "Your liquidity positions, IP-token collection, trade history, and IL protection simulator in one place.",
 };
 
 export default function PortfolioPage() {
@@ -16,11 +16,11 @@ export default function PortfolioPage() {
         <div className="mx-auto max-w-6xl px-5 py-14">
           <div className="mb-10">
             <h1 className="font-display text-4xl font-semibold tracking-tight text-ink">
-              LP Portfolio
+              Portfolio
             </h1>
             <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
-              Compare pools by risk and return, track how close each pool is to the DRS gate, and
-              simulate whether the dynamic fee compensates for impermanent loss at any DRS level.
+              Everything you hold in Veritas: liquidity positions and their DRS-calibrated fees, your
+              collection of IP tokens, your full trade history, and an IL protection simulator.
             </p>
           </div>
           <PortfolioDashboard />

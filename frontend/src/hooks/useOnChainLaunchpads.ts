@@ -118,33 +118,43 @@ export function useOnChainLaunchpads() {
     query: {enabled: poolInfo.length > 0},
   });
 
-  const entries = useMemo<LaunchpadEntry[]>(
-    () =>
-      registrations.map((r, i) => {
-        const tokenName = (metaData?.[i * 2]?.result as string | undefined) ?? "";
-        const tokenSymbol = (metaData?.[i * 2 + 1]?.result as string | undefined) ?? "";
-        const {poolId, ipIsToken0} = poolInfo[i];
-        const curve = decodeLaunchpads(phaseData?.[i]?.result as readonly unknown[] | undefined);
-        return {
-          tokenAddress: r.token,
-          royaltyReceiver: r.royaltyReceiver,
-          attestationId: r.attestationId,
-          drs: r.drsAtRegistration / 10000,
-          tokenURI: r.tokenURI,
-          tokenName,
-          tokenSymbol,
-          poolId,
-          ipIsToken0,
-          phase: curve ? (Number(curve.phase) as LaunchpadPhase) : LaunchpadPhase.INACTIVE,
-          fundsRaised: curve ? curve.fundsRaised : 0n,
-          hardCap: curve ? curve.hardCap : 0n,
-          tokensSold: curve ? curve.tokensSold : 0n,
-          curveA: curve ? curve.curveA : 0n,
-          curveB: curve ? curve.curveB : 0n,
-        };
-      }),
-    [registrations, metaData, phaseData, poolInfo]
-  );
+  const entries = useMemo<LaunchpadEntry[]>(() => {
+    const all = registrations.map((r, i) => {
+      const tokenName = (metaData?.[i * 2]?.result as string | undefined) ?? "";
+      const tokenSymbol = (metaData?.[i * 2 + 1]?.result as string | undefined) ?? "";
+      const {poolId, ipIsToken0} = poolInfo[i];
+      const curve = decodeLaunchpads(phaseData?.[i]?.result as readonly unknown[] | undefined);
+      return {
+        tokenAddress: r.token,
+        royaltyReceiver: r.royaltyReceiver,
+        attestationId: r.attestationId,
+        drs: r.drsAtRegistration / 10000,
+        tokenURI: r.tokenURI,
+        tokenName,
+        tokenSymbol,
+        poolId,
+        ipIsToken0,
+        phase: curve ? (Number(curve.phase) as LaunchpadPhase) : LaunchpadPhase.INACTIVE,
+        fundsRaised: curve ? curve.fundsRaised : 0n,
+        hardCap: curve ? curve.hardCap : 0n,
+        tokensSold: curve ? curve.tokensSold : 0n,
+        curveA: curve ? curve.curveA : 0n,
+        curveB: curve ? curve.curveB : 0n,
+      };
+    });
+    // Deduplicate by tokenAddress: one token == one bonding-curve pool (poolId is
+    // derived deterministically from the token). The SAME token can appear in
+    // multiple IPRegistered events (re-registration against a fresh attestation);
+    // we keep the LAST (most recent) so its current attestation association wins.
+    // Deduping by tokenAddress (not attestationId) is critical: the marketplace
+    // keys its cards by tokenAddress, so any duplicate token here would produce a
+    // React key collision that misroutes clicks to the wrong pool's detail page.
+    const seen = new Map<string, LaunchpadEntry>();
+    for (const entry of all) {
+      seen.set(entry.tokenAddress.toLowerCase(), entry);
+    }
+    return [...seen.values()];
+  }, [registrations, metaData, phaseData, poolInfo]);
 
   return {entries, isLoading};
 }
